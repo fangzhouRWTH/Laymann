@@ -64,12 +64,6 @@ add_executable(Laymann
 
 add_dependencies(Laymann bgfx_shaders)
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_definitions(Laymann PRIVATE BX_CONFIG_DEBUG=1)
-else()
-    target_compile_definitions(Laymann PRIVATE BX_CONFIG_DEBUG=0)
-endif()
-
 target_include_directories(${PROJECT_NAME}
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/third_party/bgfx/bx/include
