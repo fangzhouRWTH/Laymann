@@ -1,0 +1,6 @@
+
+build/
+*.o
+*.exe
+.vscode/
+_third_party/
