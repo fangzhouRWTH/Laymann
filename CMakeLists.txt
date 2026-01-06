@@ -3,11 +3,35 @@ project(Laymann VERSION 0.1.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 
-set(SHADERC_EXECUTABLE "${CMAKE_SOURCE_DIR}/third_party/bgfx/.build/linux64_gcc/bin/shadercRelease" CACHE FILEPATH "bgfx shaderc executable")
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/third_party/glfw)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/third_party/bgfx)
+
+add_executable(Laymann 
+    src/test/bgfx_test.cpp
+)
+
+target_include_directories(${PROJECT_NAME}
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/bgfx/bx/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/bgfx/bgfx/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/bgfx/bimg/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/glfw/include
+)
+
+target_link_libraries(${PROJECT_NAME}
+    PRIVATE
+        bgfx
+        bx
+        bimg
+        glfw
+)
+
+set(SHADERC_EXECUTABLE 
+    "${CMAKE_SOURCE_DIR}/build/third_party/bgfx/cmake/bgfx/shaderc")
 
 set(BGFX_SHADER_INCLUDE_DIRS 
-    "${CMAKE_SOURCE_DIR}/third_party/bgfx/examples/common" 
-    "${CMAKE_SOURCE_DIR}/third_party/bgfx/src" )
+    "${CMAKE_SOURCE_DIR}/third_party/bgfx/bgfx/examples/common" 
+    "${CMAKE_SOURCE_DIR}/third_party/bgfx/bgfx/src" )
 
 set(BGFX_SHADER_SRC_DIR  "${CMAKE_SOURCE_DIR}/src/shaders")
 set(BGFX_SHADER_BIN_DIR  "${CMAKE_SOURCE_DIR}/src/shaders")
@@ -55,29 +79,6 @@ add_custom_target(bgfx_shaders
         #${FS_GRID_BIN}
 )
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/third_party/glfw)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/third_party/bgfx)
-
-add_executable(Laymann 
-    src/test/bgfx_test.cpp
-)
-
 add_dependencies(Laymann bgfx_shaders)
-
-target_include_directories(${PROJECT_NAME}
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/bgfx/bx/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/bgfx/bgfx/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/bgfx/bimg/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/glfw/include
-)
-
-target_link_libraries(${PROJECT_NAME}
-    PRIVATE
-        bgfx
-        bx
-        bimg
-        glfw
-)
 
 

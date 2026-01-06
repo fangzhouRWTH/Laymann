@@ -1,0 +1,102 @@
+{
+    "rooms": [
+        {
+            "name": "bedroom_0/0",
+            "type": "Bedroom",
+            "geometry": [
+                [
+                    [
+                        -4.47,
+                        0.07
+                    ],
+                    [
+                        1.93,
+                        0.07
+                    ],
+                    [
+                        1.93,
+                        1.52
+                    ],
+                    [
+                        -0.32,
+                        1.52
+                    ],
+                    [
+                        -0.32,
+                        2.97
+                    ],
+                    [
+                        -4.47,
+                        2.97
+                    ]
+                ]
+            ]
+        },
+        {
+            "name": "bathroom_0/0",
+            "type": "Bathroom",
+            "geometry": [
+                [
+                    [
+                        -0.32,
+                        2.97
+                    ],
+                    [
+                        -0.32,
+                        1.52
+                    ],
+                    [
+                        1.93,
+                        1.52
+                    ],
+                    [
+                        1.93,
+                        2.97
+                    ]
+                ]
+            ]
+        }
+    ],
+    "openings": [
+        {
+            "name": "door_0",
+            "type": "door",
+            "position": [
+                -0.17,
+                1.77,
+                0.63,
+                1.27
+            ],
+            "connected_rooms": [
+                "bedroom_0/0",
+                "bathroom_0/0"
+            ]
+        },
+        {
+            "name": "door_1",
+            "type": "door",
+            "position": [
+                2.18,
+                1.37,
+                1.68,
+                0.5700000000000001
+            ],
+            "connected_rooms": [
+                "bedroom_0/0"
+            ]
+        },
+        {
+            "name": "window_0",
+            "type": "window",
+            "position": [
+                -4.47,
+                2.32,
+                -4.47,
+                0.72
+            ],
+            "connected_rooms": [
+                "bedroom_0/0"
+            ]
+        }
+    ]
+}
