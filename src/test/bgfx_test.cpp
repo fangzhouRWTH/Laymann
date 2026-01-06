@@ -16,6 +16,8 @@
 #define GLFW_EXPOSE_NATIVE_X11
 #include <GLFW/glfw3native.h>
 
+#include "system/files.h"
+
 struct Vec3
 {
     float x, y, z;
@@ -61,6 +63,13 @@ struct PosColorVertex
 };
 
 static bgfx::VertexLayout s_PosColorLayout;
+static bgfx::VertexLayout s_LineLayout;
+
+struct LineVertex
+{
+    float x, y, z;
+    float r,g,b,a;
+};
 
 static void initVertexLayout()
 {
@@ -69,41 +78,18 @@ static void initVertexLayout()
         .add(bgfx::Attrib::Normal,   3, bgfx::AttribType::Float, true)
         .add(bgfx::Attrib::Color0,   4, bgfx::AttribType::Float, true)
         .end();
+
+    s_LineLayout
+        .begin()
+        .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
+        .add(bgfx::Attrib::Color0,   4, bgfx::AttribType::Float, true) // normalized
+        .end();
 }
 
-// static PosColorVertex s_cubeVertices[24] =
-// {
-//     //  x      y      z       color(ABGR)
-//     { -1.0f, -1.0f, -1.0f,  0.2, 0.2, 0.2, 1.0 }, // A
-//     {  1.0f, -1.0f, -1.0f,  0.8, 0.2, 0.2, 1.0 }, // B
-//     {  1.0f,  1.0f, -1.0f,  0.8, 0.2, 0.2, 1.0 }, // C
-//     { -1.0f,  1.0f, -1.0f,  0.8, 0.2, 0.2, 1.0 }, // D
-
-//     { -1.0f, -1.0f,  1.0f,  0.8, 0.2, 0.2, 1.0 }, // E
-//     {  1.0f, -1.0f,  1.0f,  0.8, 0.2, 0.2, 1.0 }, // F
-//     {  1.0f,  1.0f,  1.0f,  0.8, 0.2, 0.2, 1.0 }, // G
-//     { -1.0f,  1.0f,  1.0f,  0.8, 0.2, 0.2, 1.0 }, // H
-
-//     { -1.0f, -1.0f, -1.0f,  0.2, 0.2, 0.2, 1.0 }, // A
-//     { -1.0f, -1.0f,  1.0f,  0.8, 0.2, 0.2, 1.0 }, // E
-//     {  1.0f, -1.0f,  1.0f,  0.8, 0.2, 0.2, 1.0 }, // F
-//     {  1.0f, -1.0f, -1.0f,  0.8, 0.2, 0.2, 1.0 }, // B
-
-//     {  1.0f, -1.0f, -1.0f,  0.8, 0.2, 0.2, 1.0 }, // B
-//     {  1.0f, -1.0f,  1.0f,  0.8, 0.2, 0.2, 1.0 }, // F
-//     {  1.0f,  1.0f,  1.0f,  0.8, 0.2, 0.2, 1.0 }, // G
-//     {  1.0f,  1.0f, -1.0f,  0.8, 0.2, 0.2, 1.0 }, // C
-
-//     {  1.0f,  1.0f, -1.0f,  0.8, 0.2, 0.2, 1.0 }, // C
-//     {  1.0f,  1.0f,  1.0f,  0.8, 0.2, 0.2, 1.0 }, // G
-//     { -1.0f,  1.0f,  1.0f,  0.8, 0.2, 0.2, 1.0 }, // H
-//     { -1.0f,  1.0f, -1.0f,  0.8, 0.2, 0.2, 1.0 }, // D
-
-//     { -1.0f,  1.0f, -1.0f,  0.8, 0.2, 0.2, 1.0 }, // D
-//     { -1.0f,  1.0f,  1.0f,  0.8, 0.2, 0.2, 1.0 }, // H
-//     { -1.0f, -1.0f,  1.0f,  0.8, 0.2, 0.2, 1.0 }, // E
-//     { -1.0f, -1.0f, -1.0f,  0.2, 0.2, 0.2, 1.0 }, // A
-// };
+static LineVertex grid[2] = {
+    {-100.0,0.0,0.0, 1.0,1.0,1.0,1.0},
+    {100.0,0.0,0.0, 1.0,1.0,1.0,1.0}
+};
 
 static PosColorVertex cubeVertices[36] = {
     // +X face (right)
@@ -161,14 +147,6 @@ static PosColorVertex cubeVertices[36] = {
     {1.0f, -1.0f, -1.0f,  0.0f, 0.0f,-1.0f,  1.0f, 1.0f, 0.0f}
 };
 
-// static const uint16_t s_cubeIndices[36] =
-// {
-//     0, 1, 2,
-//     2, 3, 0,
-//     6, 5, 4,
-//     4, 7, 6,
-// };
-
 static bgfx::ShaderHandle loadShaderBin(const char* _path)
 {
     std::string path = _path;
@@ -200,8 +178,24 @@ static bgfx::ShaderHandle loadShaderBin(const char* _path)
 
 static bgfx::ProgramHandle createSimpleProgram()
 {
-    bgfx::ShaderHandle vsh = loadShaderBin("/home/fangzhou/projects/ptest/LM/Laymann/src/shaders/vs_basic.bin");
-    bgfx::ShaderHandle fsh = loadShaderBin("/home/fangzhou/projects/ptest/LM/Laymann/src/shaders/fs_basic.bin");
+    auto shaderpath = lmv::getShaderPath();
+    bgfx::ShaderHandle vsh = loadShaderBin((shaderpath + "/vs_basic.bin").c_str());
+    bgfx::ShaderHandle fsh = loadShaderBin((shaderpath + "/fs_basic.bin").c_str());
+
+    if (!bgfx::isValid(vsh) || !bgfx::isValid(fsh))
+    {
+        std::cerr << "Invalid shader handles!" << std::endl;
+        return BGFX_INVALID_HANDLE;
+    }
+
+    return bgfx::createProgram(vsh, fsh, true /* destroy shaders when program destroyed */);
+}
+
+static bgfx::ProgramHandle createGridProgram()
+{
+    auto shaderpath = lmv::getShaderPath();
+    bgfx::ShaderHandle vsh = loadShaderBin((shaderpath + "/vs_grid.bin").c_str());
+    bgfx::ShaderHandle fsh = loadShaderBin((shaderpath + "/fs_grid.bin").c_str());
 
     if (!bgfx::isValid(vsh) || !bgfx::isValid(fsh))
     {
@@ -274,6 +268,7 @@ int main()
     // bgfx::IndexBufferHandle ibh = bgfx::createIndexBuffer(
     //     bgfx::makeRef(s_cubeIndices, sizeof(s_cubeIndices))
     // );
+    bgfx::VertexBufferHandle m_gridVb = bgfx::createVertexBuffer(bgfx::makeRef(grid, sizeof(grid)),s_LineLayout);
 
     bgfx::ProgramHandle program = createSimpleProgram();
     if (!bgfx::isValid(program))
@@ -285,8 +280,10 @@ int main()
         return -1;
     }
 
-    Vec3 cameraPos{0.0f, 0.0f, -5.0f}; 
-    float yaw   = 0.0f;                
+    bgfx::UniformHandle u_camera = bgfx::createUniform("u_camera", bgfx::UniformType::Vec4);
+
+    Vec3 cameraPos{0.0f, -5.0f, 0.0f}; 
+    float yaw   = 3.1415926f;                
     float pitch = 0.0f;                
 
     double lastTime = glfwGetTime();
@@ -324,8 +321,8 @@ int main()
 
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) moveForward += 1.0f;
         if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) moveForward -= 1.0f;
-        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) moveRight   += 1.0f;
-        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) moveRight   -= 1.0f;
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) moveRight   -= 1.0f;
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) moveRight   += 1.0f;
         if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) moveUp      += 1.0f;
         if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) moveUp      -= 1.0f;
 
@@ -347,7 +344,7 @@ int main()
                 lastMouseX = mx;
                 lastMouseY = my;
 
-                yaw   += (float)dx * mouseSensitivity;
+                yaw   -= (float)dx * mouseSensitivity;
                 pitch -= (float)dy * mouseSensitivity;
 
                 const float limit = bx::toRad(89.0f);
@@ -396,7 +393,9 @@ int main()
 
         float aspect = (height > 0) ? (float)width / (float)height : 1.0f;
         const bgfx::Caps* caps = bgfx::getCaps();
-        bx::mtxProj(proj, 60.0f, aspect, 0.1f, 100.0f, caps->homogeneousDepth);
+        float nearp = 0.1f;
+        float farp = 100.f;
+        bx::mtxProj(proj, 60.0f, aspect, nearp, farp, caps->homogeneousDepth);
         bgfx::setViewTransform(kViewId, view, proj);
 
         float mtx[16];
@@ -405,8 +404,11 @@ int main()
         bgfx::touch(kViewId);
 
         bgfx::setTransform(mtx);
+
         bgfx::setVertexBuffer(0, vbh);
         //bgfx::setIndexBuffer(ibh);
+        float nf[4] = {nearp, farp, 0, 0};
+        bgfx::setUniform(u_camera, nf);
         bgfx::setState(
             BGFX_STATE_WRITE_RGB
           | BGFX_STATE_WRITE_A
@@ -415,13 +417,13 @@ int main()
           | BGFX_STATE_CULL_CW
           | BGFX_STATE_MSAA
         );
-
         bgfx::submit(kViewId, program);
 
         bgfx::frame();
     }
 
     //bgfx::destroy(ibh);
+    bgfx::destroy(u_camera);
     bgfx::destroy(vbh);
     bgfx::destroy(program);
 

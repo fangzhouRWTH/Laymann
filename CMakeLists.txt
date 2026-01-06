@@ -3,15 +3,25 @@ project(Laymann VERSION 0.1.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 
+if (WIN32)
+    add_compile_definitions(PLATFORM_WINDOWS)
+elseif (APPLE)
+    add_compile_definitions(PLATFORM_MACOS)
+elseif (UNIX)
+    add_compile_definitions(PLATFORM_LINUX)
+endif()
+
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/third_party/glfw)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/third_party/bgfx)
 
 add_executable(Laymann 
     src/test/bgfx_test.cpp
+    src/system/files.cpp
 )
 
 target_include_directories(${PROJECT_NAME}
     PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${CMAKE_CURRENT_SOURCE_DIR}/third_party/bgfx/bx/include
         ${CMAKE_CURRENT_SOURCE_DIR}/third_party/bgfx/bgfx/include
         ${CMAKE_CURRENT_SOURCE_DIR}/third_party/bgfx/bimg/include
@@ -34,7 +44,7 @@ set(BGFX_SHADER_INCLUDE_DIRS
     "${CMAKE_SOURCE_DIR}/third_party/bgfx/bgfx/src" )
 
 set(BGFX_SHADER_SRC_DIR  "${CMAKE_SOURCE_DIR}/src/shaders")
-set(BGFX_SHADER_BIN_DIR  "${CMAKE_SOURCE_DIR}/src/shaders")
+set(BGFX_SHADER_BIN_DIR  "${CMAKE_SOURCE_DIR}/build/shaders")
 
 function(bgfx_compile_shader OUT_VAR SHADER_TYPE SHADER_FILE)
     get_filename_component(FILE_NAME_WE ${SHADER_FILE} NAME_WE)
