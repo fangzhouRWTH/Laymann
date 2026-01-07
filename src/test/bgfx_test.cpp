@@ -13,10 +13,11 @@
 
 #include <GLFW/glfw3.h>
 
+#include "system/files.h"
+#include "utils/planLoader.h"
+
 #define GLFW_EXPOSE_NATIVE_X11
 #include <GLFW/glfw3native.h>
-
-#include "system/files.h"
 
 struct Vec3
 {
@@ -55,21 +56,14 @@ static Vec3 normalize(const Vec3& v)
     return {v.x * invLen, v.y * invLen, v.z * invLen};
 }
 
-struct PosColorVertex
-{
-    float x, y, z;
-    float nx, ny, nz;
-    float r, g, b, a;
-};
-
 static bgfx::VertexLayout s_PosColorLayout;
-static bgfx::VertexLayout s_LineLayout;
+//static bgfx::VertexLayout s_LineLayout;
 
-struct LineVertex
-{
-    float x, y, z;
-    float r,g,b,a;
-};
+// struct LineVertex
+// {
+//     float x, y, z;
+//     float r,g,b,a;
+// };
 
 static void initVertexLayout()
 {
@@ -79,19 +73,46 @@ static void initVertexLayout()
         .add(bgfx::Attrib::Color0,   4, bgfx::AttribType::Float, true)
         .end();
 
-    s_LineLayout
-        .begin()
-        .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
-        .add(bgfx::Attrib::Color0,   4, bgfx::AttribType::Float, true) // normalized
-        .end();
+    // s_LineLayout
+    //     .begin()
+    //     .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
+    //     .add(bgfx::Attrib::Color0,   4, bgfx::AttribType::Float, true) // normalized
+    //     .end();
 }
 
-static LineVertex grid[2] = {
-    {-100.0,0.0,0.0, 1.0,1.0,1.0,1.0},
-    {100.0,0.0,0.0, 1.0,1.0,1.0,1.0}
-};
+static lmcore::PosColorVertex gridVertices[204] = {};
+static int gridIndices[204] = {};
 
-static PosColorVertex cubeVertices[36] = {
+void initGridData()
+{
+    float r,g,b,a;
+    r = .3;
+    g = .5;
+    b = 0.9;
+    a = 1.0;
+
+    for(int i = 0; i < 51; i++)
+    {
+        float start = -25.f;
+        gridVertices[i*2] = {start+i,-100.f,0.0, 0.0,0.0,1.0, r,g,b,a};
+        gridVertices[i*2+1] = {start+i,100.f,0.0, 0.0,0.0,1.0, r,g,b,a};
+    }
+
+    for(int i = 0; i < 51; i++)
+    {
+        float start = -25.f;
+        int index_offset = 102; 
+        gridVertices[index_offset + i*2] = {-100.f, start+i,0.0, 0.0,0.0,1.0, r,g,b,a};
+        gridVertices[index_offset + i*2 + 1] = {100.f, start+i,0.0, 0.0,0.0,1.0, r,g,b,a};
+    }
+
+    for(int i = 0; i < 204; i++)
+    {
+        gridIndices[i] = i;
+    }
+}
+
+static lmcore::PosColorVertex cubeVertices[36] = {
     // +X face (right)
     {1.0f, -1.0f, -1.0f,  1.0f, 0.0f, 0.0f,  1.0f, 0.0f, 0.0f},  // red
     {1.0f, -1.0f,  1.0f,  1.0f, 0.0f, 0.0f,  1.0f, 0.0f, 0.0f},
@@ -208,6 +229,10 @@ static bgfx::ProgramHandle createGridProgram()
 
 int main()
 {
+    auto rootpath = lmv::getExeFolderPath();
+    auto plan_0_path = rootpath + std::string("/data/plan/l_singleStudio01.json");
+    auto fp_0 = lmv::load_floor_plan_from_json(plan_0_path);
+
     if (!glfwInit())
     {
         std::fprintf(stderr, "Failed to initialize GLFW\n");
@@ -260,6 +285,7 @@ int main()
     bgfx::setViewRect(kViewId, 0, 0, (uint16_t)width, (uint16_t)height);
 
     initVertexLayout();
+    initGridData();
 
     bgfx::VertexBufferHandle vbh = bgfx::createVertexBuffer(
         bgfx::makeRef(cubeVertices, sizeof(cubeVertices)),
@@ -268,10 +294,21 @@ int main()
     // bgfx::IndexBufferHandle ibh = bgfx::createIndexBuffer(
     //     bgfx::makeRef(s_cubeIndices, sizeof(s_cubeIndices))
     // );
-    bgfx::VertexBufferHandle m_gridVb = bgfx::createVertexBuffer(bgfx::makeRef(grid, sizeof(grid)),s_LineLayout);
+    bgfx::VertexBufferHandle vbh_grid = bgfx::createVertexBuffer(bgfx::makeRef(gridVertices, sizeof(gridVertices)),s_PosColorLayout);
+    bgfx::IndexBufferHandle ibh_grid = bgfx::createIndexBuffer(bgfx::makeRef(gridIndices, sizeof(gridIndices)));
 
     bgfx::ProgramHandle program = createSimpleProgram();
     if (!bgfx::isValid(program))
+    {
+        std::fprintf(stderr, "Failed to create program. Check your shaders.\n");
+        bgfx::shutdown();
+        glfwDestroyWindow(window);
+        glfwTerminate();
+        return -1;
+    }
+
+    bgfx::ProgramHandle program_grid = createGridProgram();
+    if (!bgfx::isValid(program_grid))
     {
         std::fprintf(stderr, "Failed to create program. Check your shaders.\n");
         bgfx::shutdown();
@@ -395,6 +432,7 @@ int main()
         const bgfx::Caps* caps = bgfx::getCaps();
         float nearp = 0.1f;
         float farp = 100.f;
+        float nf[4] = {nearp, farp, 0, 0};
         bx::mtxProj(proj, 60.0f, aspect, nearp, farp, caps->homogeneousDepth);
         bgfx::setViewTransform(kViewId, view, proj);
 
@@ -405,9 +443,22 @@ int main()
 
         bgfx::setTransform(mtx);
 
+        bgfx::setVertexBuffer(0, vbh_grid);
+        //bgfx::setIndexBuffer(ibh_grid);
+        bgfx::setUniform(u_camera, nf);
+        bgfx::setState(
+            BGFX_STATE_WRITE_RGB
+          | BGFX_STATE_WRITE_A
+          | BGFX_STATE_WRITE_Z
+          | BGFX_STATE_DEPTH_TEST_LESS
+          | BGFX_STATE_CULL_CW
+          | BGFX_STATE_MSAA
+          | BGFX_STATE_PT_LINES
+        );
+        bgfx::submit(kViewId, program_grid);
+
         bgfx::setVertexBuffer(0, vbh);
         //bgfx::setIndexBuffer(ibh);
-        float nf[4] = {nearp, farp, 0, 0};
         bgfx::setUniform(u_camera, nf);
         bgfx::setState(
             BGFX_STATE_WRITE_RGB
@@ -423,9 +474,12 @@ int main()
     }
 
     //bgfx::destroy(ibh);
+    bgfx::destroy(ibh_grid);
     bgfx::destroy(u_camera);
     bgfx::destroy(vbh);
+    bgfx::destroy(vbh_grid);
     bgfx::destroy(program);
+    bgfx::destroy(program_grid);
 
     bgfx::shutdown();
     glfwDestroyWindow(window);

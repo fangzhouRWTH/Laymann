@@ -11,13 +11,20 @@ elseif (UNIX)
     add_compile_definitions(PLATFORM_LINUX)
 endif()
 
+add_custom_command(
+    OUTPUT ${CMAKE_BINARY_DIR}/data
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/data ${CMAKE_BINARY_DIR}/data
+    COMMENT "Copying files..."
+)
+
+add_custom_target(CopyFiles ALL DEPENDS ${CMAKE_BINARY_DIR}/data)
+
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/third_party/glfw)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/third_party/bgfx)
 
 add_executable(Laymann 
     src/test/bgfx_test.cpp
-    src/system/files.cpp
-)
+    src/system/files.cpp)
 
 target_include_directories(${PROJECT_NAME}
     PRIVATE
@@ -26,6 +33,9 @@ target_include_directories(${PROJECT_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR}/third_party/bgfx/bgfx/include
         ${CMAKE_CURRENT_SOURCE_DIR}/third_party/bgfx/bimg/include
         ${CMAKE_CURRENT_SOURCE_DIR}/third_party/glfw/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/nlohmann/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/eigen
+
 )
 
 target_link_libraries(${PROJECT_NAME}
@@ -78,15 +88,15 @@ endfunction()
 
 bgfx_compile_shader(VS_BASIC_BIN v vs_basic.sc)
 bgfx_compile_shader(FS_BASIC_BIN f fs_basic.sc)
-# bgfx_compile_shader(VS_GRID_BIN  v vs_grid.sc)
-# bgfx_compile_shader(FS_GRID_BIN  f fs_grid.sc)
+bgfx_compile_shader(VS_GRID_BIN  v vs_grid.sc)
+bgfx_compile_shader(FS_GRID_BIN  f fs_grid.sc)
 
 add_custom_target(bgfx_shaders
     DEPENDS
         ${VS_BASIC_BIN}
         ${FS_BASIC_BIN}
-        #${VS_GRID_BIN}
-        #${FS_GRID_BIN}
+        ${VS_GRID_BIN}
+        ${FS_GRID_BIN}
 )
 
 add_dependencies(Laymann bgfx_shaders)
