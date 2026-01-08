@@ -15,6 +15,7 @@
 
 #include "system/files.h"
 #include "utils/planLoader.h"
+#include "core/utils.h"
 
 #define GLFW_EXPOSE_NATIVE_X11
 #include <GLFW/glfw3native.h>
@@ -57,13 +58,6 @@ static Vec3 normalize(const Vec3& v)
 }
 
 static bgfx::VertexLayout s_PosColorLayout;
-//static bgfx::VertexLayout s_LineLayout;
-
-// struct LineVertex
-// {
-//     float x, y, z;
-//     float r,g,b,a;
-// };
 
 static void initVertexLayout()
 {
@@ -72,12 +66,6 @@ static void initVertexLayout()
         .add(bgfx::Attrib::Normal,   3, bgfx::AttribType::Float, true)
         .add(bgfx::Attrib::Color0,   4, bgfx::AttribType::Float, true)
         .end();
-
-    // s_LineLayout
-    //     .begin()
-    //     .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
-    //     .add(bgfx::Attrib::Color0,   4, bgfx::AttribType::Float, true) // normalized
-    //     .end();
 }
 
 static lmcore::PosColorVertex gridVertices[204] = {};
@@ -229,6 +217,18 @@ static bgfx::ProgramHandle createGridProgram()
 
 int main()
 {
+    lmcore::FPLineSegment first;
+    first.start.value.x() = -1.f;
+    first.end.value.x() = 1.f;
+    lmcore::FPLineSegment second;
+    //second.start.value.x() = 0.5f;
+    //second.end.value.x() = 2.f;
+    second.start.value.x() = 0.5f;
+    second.end.value.x() = 0.5f;
+    second.start.value.y() = -1.f;
+    second.end.value.y() = 1.f;
+    lmcore::FPPoint i_pos;
+    auto res = lmcore::find_segment_intersection_xy(first,second,i_pos);
     auto rootpath = lmv::getExeFolderPath();
     auto plan_0_path = rootpath + std::string("/data/plan/l_singleStudio01.json");
     auto fp_0 = lmv::load_floor_plan_from_json(plan_0_path);

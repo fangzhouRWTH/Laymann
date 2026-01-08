@@ -1,3 +1,5 @@
+#pragma once
+
 #include <string>
 #include <vector>
 #include <array>
@@ -33,7 +35,13 @@ namespace lmcore
 
     struct FPPoint
     {
-        Vec4f value;
+        Vec3f value = {0.0f,0.0f,0.0f};
+    };
+
+    struct FPLineSegment
+    {
+        FPPoint start;
+        FPPoint end;
     };
 
     struct FPGeometry
@@ -65,10 +73,16 @@ namespace lmcore
         FPConnection connection;
     };
 
+    struct FPData
+    {
+        
+    };
+
     struct FloorPlan
     {
         std::vector<FPRoom> rooms;
         std::vector<FPOpening> openings;
+        FPData data;
     };
 
     struct PosColorVertex
@@ -82,5 +96,17 @@ namespace lmcore
     {
         std::vector<PosColorVertex> vertices;
         //atm we dont use index draw
+    };
+
+    struct StaticStructure
+    {
+        RenderObject rObj;
+        Mat4f transform;
+        std::vector<BBox> bboxes;
+    };
+
+    struct Walls : public StaticStructure
+    {
+
     };
 }

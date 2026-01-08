@@ -123,7 +123,7 @@ namespace lmv
             float y2 = position[3];
             float tempz_h = 2.2f;
 
-            opening.position.value = lmcore::Vec4f((x1+x2)/2.f,(y1+y2)/2.f,0.f,1.f);
+            opening.position.value = lmcore::Vec3f{(x1+x2)/2.f,(y1+y2)/2.f,0.f};
             lmcore::BBox bbox;
             bbox.xyz = lmcore::Vec3f((x2-x1)/2.f,(y2-y1)/2.f,tempz_h/2.f);
             opening.bounding = bbox;
