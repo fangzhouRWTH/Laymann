@@ -227,8 +227,7 @@ int main()
     second.end.value.x() = 0.5f;
     second.start.value.y() = -1.f;
     second.end.value.y() = 1.f;
-    lmcore::FPPoint i_pos;
-    auto res = lmcore::find_segment_intersection_xy(first,second,i_pos);
+    auto res = lmcore::find_segment_intersection_xy(first,second);
     auto rootpath = lmv::getExeFolderPath();
     auto plan_0_path = rootpath + std::string("/data/plan/l_singleStudio01.json");
     auto fp_0 = lmv::load_floor_plan_from_json(plan_0_path);
