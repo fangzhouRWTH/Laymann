@@ -1,7 +1,5 @@
-#include <iostream>
+#include <catch2/catch_test_macros.hpp>
 
-int main()
-{
-    std::cout<<"hello"<<std::endl;
-    return 0;
+TEST_CASE("basic", "[demo]") {
+    REQUIRE(1 + 1 == 2);
 }
