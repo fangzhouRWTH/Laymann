@@ -22,6 +22,8 @@ add_custom_target(CopyFiles ALL DEPENDS ${CMAKE_BINARY_DIR}/data)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/third_party/glfw)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/third_party/bgfx)
 
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/unit_test)
+
 add_executable(Laymann 
     src/test/bgfx_test.cpp
     src/system/files.cpp)

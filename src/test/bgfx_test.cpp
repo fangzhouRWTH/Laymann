@@ -217,17 +217,27 @@ static bgfx::ProgramHandle createGridProgram()
 
 int main()
 {
-    lmcore::FPLineSegment first;
-    first.start.value.x() = -1.f;
-    first.end.value.x() = 1.f;
-    lmcore::FPLineSegment second;
+    // lmcore::FPLineSegment first;
+    // first.start.value.x() = -1.f;
+    // first.end.value.x() = 1.f;
+    // lmcore::FPLineSegment second;
     //second.start.value.x() = 0.5f;
     //second.end.value.x() = 2.f;
-    second.start.value.x() = 0.5f;
-    second.end.value.x() = 0.5f;
-    second.start.value.y() = -1.f;
-    second.end.value.y() = 1.f;
-    auto res = lmcore::find_segment_intersection_xy(first,second);
+    // second.start.value.x() = -2.5f;
+    // second.end.value.x() = 2.5f;
+    //second.start.value.y() = -1.f;
+    //second.end.value.y() = 1.f;
+    // auto res = lmcore::find_segment_intersection_xy(first,second);
+
+    // uint32_t i = 0;
+    // for(auto s : res.newSegments)
+    // {
+        
+    //     std::cout<<i<<std::endl;
+    //     std::cout<<"start: "<<s.start.value<<std::endl<<"end: "<<s.end.value <<std::endl;
+    //     i++;
+    // }
+
     auto rootpath = lmv::getExeFolderPath();
     auto plan_0_path = rootpath + std::string("/data/plan/l_singleStudio01.json");
     auto fp_0 = lmv::load_floor_plan_from_json(plan_0_path);

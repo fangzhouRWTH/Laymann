@@ -35,6 +35,55 @@ namespace lmcore{
         std::vector<uint32_t> secondIndices;
     };
 
+    bool has_segment_intersection_xy(const FPLineSegment & first, const FPLineSegment & second)
+    {
+        Vec2f p0 = {first.start.value.x(),first.start.value.y()};
+        Vec2f p1 = {first.end.value.x(),first.end.value.y()};
+        Vec2f q0 = {second.start.value.x(),second.start.value.y()};
+        Vec2f q1 = {second.end.value.x(),second.end.value.y()};
+
+        Line _first = Line::Through(p0,p1);
+        Line _second = Line::Through(q0,q1);
+        Vec2f _prob_is = _first.intersection(_second);
+
+        bool on_first = is_point_on_segment(p0,p1,_prob_is);
+        bool on_second = is_point_on_segment(q0,q1,_prob_is);
+        bool is_parallel = (p1-p0).dot(q0-q1);
+
+        IntersectionResult res;
+        Vec3f origin_intersec = {_prob_is.x(),_prob_is.y(),first.start.value.z()};
+
+        if(on_first && on_second && !is_parallel)
+        {
+            return true;
+        }
+
+        if((on_first || on_second) && is_parallel)
+        {
+            return true;
+        }
+
+        if((on_first || on_second) && is_parallel)
+        {
+            // overlap
+            float lp0 = p0.norm();
+            float lp1 = p1.norm();
+            float lq0 = q0.norm();
+            float lq1 = q1.norm();
+
+            bool b1 = !(p0.x()>q0.x()&&p0.x()>q1.x()&&p1.x()>q0.x()&&p1.x()>q1.x());
+            bool b2 = !(p0.x()<q0.x()&&p0.x()<q1.x()&&p1.x()<q0.x()&&p1.x()<q1.x());
+            bool b3 = !(p0.y()>q0.y()&&p0.y()>q1.y()&&p1.y()>q0.y()&&p1.y()>q1.y());
+            bool b4 = !(p0.y()<q0.y()&&p0.y()<q1.y()&&p1.y()<q0.y()&&p1.y()<q1.y());
+            if(b1&&b2&&b3&&b4)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     IntersectionResult find_segment_intersection_xy(const FPLineSegment & first, const FPLineSegment & second) {
         Vec2f p0 = {first.start.value.x(),first.start.value.y()};
         Vec2f p1 = {first.end.value.x(),first.end.value.y()};
@@ -73,13 +122,21 @@ namespace lmcore{
             float lp1 = p1.norm();
             float lq0 = q0.norm();
             float lq1 = q1.norm();
-            res.hasIntersection = false;
+            res.hasIntersection = true;
 
-            if((lp0>lq0&&lp0>lq1&&lp1>lq0&&lp1>lq1)||(lp0<lq0&&lp0<lq1&&lp1<lq0&&lp1<lq1))
+            bool b1 = !(p0.x()>q0.x()&&p0.x()>q1.x()&&p1.x()>q0.x()&&p1.x()>q1.x());
+            bool b2 = !(p0.x()<q0.x()&&p0.x()<q1.x()&&p1.x()<q0.x()&&p1.x()<q1.x());
+            bool b3 = !(p0.y()>q0.y()&&p0.y()>q1.y()&&p1.y()>q0.y()&&p1.y()>q1.y());
+            bool b4 = !(p0.y()<q0.y()&&p0.y()<q1.y()&&p1.y()<q0.y()&&p1.y()<q1.y());
+            if(b1&&b2&&b3&&b4)
             {
                 //res.hasIntersection = true;
                 std::vector<Vec2f> points = {p0,p1,q0,q1};
-                std::vector<float> lengths = {p0.norm(),p1.norm(),q0.norm(),q1.norm()};
+                std::vector<float> lengths;
+                if(abs(p0.x()-p1.x())<=0.000001f)
+                    lengths = {0.f,p1.y()-p0.y(),q0.y()-p0.y(),q1.y()-p0.y()};
+                else
+                    lengths = {0.f,p1.x()-p0.x(),q0.x()-p0.x(),q1.x()-p0.x()};
                 std::vector<uint32_t> indices = {0,1,2,3};
 
                 std::sort(indices.begin(),indices.end(),[&lengths](float i1,float i2){
@@ -91,7 +148,7 @@ namespace lmcore{
                 uint32_t j0;
                 uint32_t j1;
 
-                for(int i = 0; i < 3; i++)
+                for(int i = 0; i < 4; i++)
                 {
                     if(indices[i]==0)
                         i0 = i;
@@ -106,17 +163,17 @@ namespace lmcore{
                 uint32_t dis_i = uint32_t(abs(int(i0)-int(i1)));
                 uint32_t dis_j = uint32_t(abs(int(j0)-int(j1)));
 
-                lmcore::FPPoint a = {.value = Vec3f(points[indices[0]],};
-                lmcore::FPPoint b = {.value = points[indices[0]]};
-                lmcore::FPPoint c = {.value = points[indices[0]]};
-                lmcore::FPPoint d = {.value = points[indices[0]]};
+                lmcore::FPPoint a = {.value = {points[indices[0]].x(),points[indices[0]].y(),first.start.value.z()}};
+                lmcore::FPPoint b = {.value = {points[indices[1]].x(),points[indices[1]].y(),first.start.value.z()}};
+                lmcore::FPPoint c = {.value = {points[indices[2]].x(),points[indices[2]].y(),first.start.value.z()}};
+                lmcore::FPPoint d = {.value = {points[indices[3]].x(),points[indices[3]].y(),first.start.value.z()}};
 
                 if(dis_i == 1 && dis_j == 1)
                 {
                     res.newSegments = {first,second};
                     res.firstIndices = {0};
                     res.secondIndices = {1};
-                    res.intersectionPoints = {lmcore::FPPoint{.value = points[indices[1]]}};
+                    res.intersectionPoints = {lmcore::FPPoint{.value = {points[indices[1]].x(),points[indices[1]].y(),first.start.value.z()}}};
                     return res;
                 }
 
@@ -193,6 +250,7 @@ namespace lmcore{
                 return res;
             }
 
+            res.hasIntersection = false;
             return res;
         }
 
@@ -200,9 +258,4 @@ namespace lmcore{
         res.hasIntersection = false;
         return res;
     }
-
-    // std::vector<lmcore::FPLineSegment> intersect_lines(const FPLineSegment & first, const FPLineSegment & second)
-    // {
-
-    // }
 }

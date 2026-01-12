@@ -54,6 +54,7 @@ namespace lmcore
         std::string name;
         ERoomType type;
         std::vector<FPGeometry> geometries;
+        std::vector<uint32_t> wallIndices;
     };
 
     struct FPConnection
@@ -73,6 +74,11 @@ namespace lmcore
         FPConnection connection;
     };
 
+    struct FPWallSegment
+    {
+        FPLineSegment value;
+    };
+
     struct FPData
     {
         
@@ -82,6 +88,7 @@ namespace lmcore
     {
         std::vector<FPRoom> rooms;
         std::vector<FPOpening> openings;
+        std::vector<FPWallSegment> walls;
         FPData data;
     };
 
