@@ -36,12 +36,22 @@ namespace lmcore
     struct FPPoint
     {
         Vec3f value = {0.0f,0.0f,0.0f};
+
+        bool operator==(const FPPoint & other) const
+        {
+            return value == other.value;
+        }
     };
 
     struct FPLineSegment
     {
         FPPoint start;
         FPPoint end;
+
+        bool operator==(const FPLineSegment & other) const
+        {
+            return ((start==other.start)&&(end==other.end))||((start==other.end)&&(end==other.start));
+        }
     };
 
     struct FPGeometry

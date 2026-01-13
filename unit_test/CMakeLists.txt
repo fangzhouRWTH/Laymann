@@ -2,7 +2,9 @@
 #project(Laymann VERSION 0.1.0 LANGUAGES C CXX)
 
 #set(CMAKE_CXX_STANDARD 20)
-add_executable(UT_Geometry geometry_test.cpp)
+add_executable(UT_Geometry 
+geometry_test.cpp
+)
 
 target_link_libraries(UT_Geometry
     PRIVATE
@@ -11,7 +13,7 @@ target_link_libraries(UT_Geometry
 
 target_include_directories(UT_Geometry
     PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/src
-        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/eigen
-        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/catch2
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/third_party/eigen
+        ${CMAKE_SOURCE_DIR}/third_party/catch2
 )

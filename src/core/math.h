@@ -1,6 +1,5 @@
 #pragma once
 #include "Eigen/Dense"
-#include "core/data.h"
 
 namespace lmcore
 {
