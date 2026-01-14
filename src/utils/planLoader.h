@@ -133,105 +133,48 @@ namespace lmv
         }
         
         //to merge geometries
-        if(plan.rooms.size()>1)
+        std::vector<std::vector<uint32_t>> room_wall_indices;
+        return plan;
+    }
+
+    //temp
+    void create_vertices_indices_of_room_geometry(lmcore::FloorPlan & plan, std::vector<lmcore::PosColorVertex> & vertices, std::vector<int> & indices)
+    {
+        float r = 0.8f;
+        float g = 0.3f;
+        float b = 0.2f;
+        float a = 1.f;
+        for(auto room : plan.rooms)
         {
-            using tstruct = std::pair<lmcore::FPLineSegment,std::pair<int,int>>;
-            std::vector<tstruct> lines;
-
-            for(uint32_t i = 0; i < plan.rooms.size(); i++)
+            auto size = room.geometries[0].points.size();
+            for(auto i = 0; i < size; i++)
             {
-                //merge geometries
-                auto & g = plan.rooms[i].geometries[0];
-                for(uint32_t j = 0; j < g.points.size(); j++)
-                {
-                    auto p0 = g.points[j];
-                    lmcore::FPPoint p1;
-                    if(j==g.points.size()-1u)
-                        p1 = g.points[0];
-                    else
-                        p1 = g.points[j+1u];
-                    lmcore::FPLineSegment seg = {.start = p0,.end = p1};
-                    std::vector<tstruct> ts(1);
-                    ts[0].first = seg;
-                    ts[0].second.first = i;
-                    ts[0].second.second = -1;
+                auto j = i+1;
+                if(i == size - 1)
+                    j = 0;
+                auto ip = room.geometries[0].points[i].value;
+                auto jp = room.geometries[0].points[j].value;
+                lmcore::PosColorVertex iv;
+                lmcore::PosColorVertex jv;
+                iv.x = ip.x();
+                iv.y = ip.y();
+                iv.z = ip.z();
+                iv.r = r;
+                iv.g = g;
+                iv.b = b;
+                iv.a = a;
 
-                    if(lines.size()==0u)
-                        lines.push_back(ts[0]);
-                    else
-                    {
-                        for(uint32_t k = 0u; k < lines.size(); k++)
-                        {
-                            auto & cur_seg = lines[k];
-                            auto opposite = cur_seg.second.first;
-                            for(uint32_t m = 0u; m < ts.size(); m++)
-                            {
-                                bool hi = lmcore::has_segment_intersection_xy(cur_seg.first,ts[m].first);
-                                if(hi)
-                                {
-                                    if(opposite>=0)
-                                        assert(false);
+                jv.x = jp.x();
+                jv.y = jp.y();
+                jv.z = jp.z();
+                jv.r = r;
+                jv.g = g;
+                jv.b = b;
+                jv.a = a;
 
-                                    auto res = lmcore::find_segment_intersection_xy(cur_seg.first,ts[m].first);
-                                    std::vector<uint32_t> fi,si,bi;
-                                    for(auto f: res.firstIndices)
-                                    {
-                                        for(auto s:res.secondIndices)
-                                        {
-                                            if(f == s)
-                                                bi.push_back(f);
-                                            else
-                                                fi.push_back(f);
-                                        }
-                                    }
-                                    for(auto s:res.secondIndices)
-                                    {
-                                        for(auto f: res.firstIndices)
-                                        {
-                                            if(s!=f)
-                                                si.push_back(s);
-                                        }
-                                    }
-
-                                    uint32_t count = 0u;
-                                    std::vector<tstruct> intermediate;
-                                    for(auto l = 0; l < fi.size(); i++)
-                                    {
-                                        intermediate.push_back({res.newSegments[fi[l]],{opposite,-1}});
-                                    }
-                                    for(auto l = 0; l < bi.size(); i++)
-                                    {
-                                        intermediate.push_back({res.newSegments[bi[l]],{opposite,ts[m].second.second}});
-                                    }
-
-                                    auto tsi = ts[m].second.second;
-                                    ts.clear();
-                                    for(auto l = 0; l < si.size(); i++)
-                                    {
-                                        //ts.push_back({res.newSegments[si[l]],{ts.second.second,-1}});
-                                    }
-
-                                    for(auto l = 0; l < intermediate.size(); l++)
-                                    {
-                                        //if(l==0)
-                                            //lines
-                                    }
-                                }
-                                else
-                                {
-                                    // tstruct newt;
-                                    // newt.first = ts.first;
-                                    // newt.second.first = i;
-                                    // newt.second.second = -1;
-                                    // lines.push_back(newt);
-                                }
-                            }
-                        }
-                    }
-                }
+                vertices.push_back(iv);vertices.push_back(jv);
+                indices.push_back(i);indices.push_back(i+1);
             }
         }
-
-        return plan;
     }
 }

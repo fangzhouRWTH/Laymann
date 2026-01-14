@@ -239,8 +239,11 @@ int main()
     // }
 
     auto rootpath = lmv::getExeFolderPath();
-    auto plan_0_path = rootpath + std::string("/data/plan/l_singleStudio01.json");
+    auto plan_0_path = rootpath + std::string("/../data/plan/l_singleStudio01.json");
     auto fp_0 = lmv::load_floor_plan_from_json(plan_0_path);
+    std::vector<lmcore::PosColorVertex> fpline_vertices;
+    std::vector<int> fpline_indices;
+    lmv::create_vertices_indices_of_room_geometry(fp_0,fpline_vertices,fpline_indices);
 
     if (!glfwInit())
     {
@@ -305,6 +308,9 @@ int main()
     // );
     bgfx::VertexBufferHandle vbh_grid = bgfx::createVertexBuffer(bgfx::makeRef(gridVertices, sizeof(gridVertices)),s_PosColorLayout);
     bgfx::IndexBufferHandle ibh_grid = bgfx::createIndexBuffer(bgfx::makeRef(gridIndices, sizeof(gridIndices)));
+
+    bgfx::VertexBufferHandle vbh_room_geo = bgfx::createVertexBuffer(bgfx::makeRef(fpline_vertices.data(),sizeof(lmcore::PosColorVertex) * fpline_vertices.size()),s_PosColorLayout);
+    bgfx::IndexBufferHandle ibh_room_geo = bgfx::createIndexBuffer(bgfx::makeRef(fpline_indices.data(),sizeof(int)*fpline_indices.size()));
 
     bgfx::ProgramHandle program = createSimpleProgram();
     if (!bgfx::isValid(program))
@@ -466,8 +472,8 @@ int main()
         );
         bgfx::submit(kViewId, program_grid);
 
-        bgfx::setVertexBuffer(0, vbh);
-        //bgfx::setIndexBuffer(ibh);
+        bgfx::setVertexBuffer(0, vbh_room_geo);
+        //bgfx::setIndexBuffer(ibh_grid);
         bgfx::setUniform(u_camera, nf);
         bgfx::setState(
             BGFX_STATE_WRITE_RGB
@@ -476,8 +482,22 @@ int main()
           | BGFX_STATE_DEPTH_TEST_LESS
           | BGFX_STATE_CULL_CW
           | BGFX_STATE_MSAA
+          | BGFX_STATE_PT_LINES
         );
-        bgfx::submit(kViewId, program);
+        bgfx::submit(kViewId, program_grid);
+
+        // bgfx::setVertexBuffer(0, vbh);
+        // //bgfx::setIndexBuffer(ibh);
+        // bgfx::setUniform(u_camera, nf);
+        // bgfx::setState(
+        //     BGFX_STATE_WRITE_RGB
+        //   | BGFX_STATE_WRITE_A
+        //   | BGFX_STATE_WRITE_Z
+        //   | BGFX_STATE_DEPTH_TEST_LESS
+        //   | BGFX_STATE_CULL_CW
+        //   | BGFX_STATE_MSAA
+        // );
+        // bgfx::submit(kViewId, program);
 
         bgfx::frame();
     }
@@ -487,6 +507,8 @@ int main()
     bgfx::destroy(u_camera);
     bgfx::destroy(vbh);
     bgfx::destroy(vbh_grid);
+    bgfx::destroy(vbh_room_geo);
+    bgfx::destroy(ibh_room_geo);
     bgfx::destroy(program);
     bgfx::destroy(program_grid);
 
