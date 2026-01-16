@@ -240,10 +240,14 @@ int main()
 
     auto rootpath = lmv::getExeFolderPath();
     auto plan_0_path = rootpath + std::string("/../data/plan/l_singleStudio01.json");
+    //auto plan_0_path = rootpath + std::string("/../data/plan/l_twoBedroomApartment03.json");
     auto fp_0 = lmv::load_floor_plan_from_json(plan_0_path);
     std::vector<lmcore::PosColorVertex> fpline_vertices;
     std::vector<int> fpline_indices;
-    lmv::create_vertices_indices_of_room_geometry(fp_0,fpline_vertices,fpline_indices);
+    lmv::FloorPlanWallMerger merger(fp_0);
+    merger.Merge();
+    //lmv::create_vertices_indices_of_room_geometry(fp_0,fpline_vertices,fpline_indices);
+    lmv::create_vertices_indices_from_merger(merger,fpline_vertices);
 
     if (!glfwInit())
     {

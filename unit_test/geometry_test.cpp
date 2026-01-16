@@ -2,6 +2,7 @@
 #include <vector>
 #include "core/utils.h"
 #include "core/data.h"
+#include "igl/cotmatrix.h"
 
 bool is_segment_matched(const std::vector<lmcore::FPLineSegment> & first,const std::vector<lmcore::FPLineSegment> & second)
 {
@@ -129,4 +130,9 @@ TEST_CASE("GEOMETRY") {
     l2 = create_seg(4.f,0.f,0.f,5.f,0.f,0.f);
     res = lmcore::find_segment_intersection_xy(l1,l2);
     REQUIRE(res.hasIntersection==false);
+}
+
+TEST_CASE("MESH OPERATION")
+{
+
 }

@@ -16,6 +16,8 @@ target_include_directories(core
         ${CMAKE_SOURCE_DIR}/third_party/glfw/include
         ${CMAKE_SOURCE_DIR}/third_party/nlohmann/include
         ${CMAKE_SOURCE_DIR}/third_party/eigen
+        ${CMAKE_SOURCE_DIR}/third_party/libigl/include
+        ${CMAKE_SOURCE_DIR}/third_party/openmesh
 )
 
 target_compile_features(core PUBLIC cxx_std_20)
@@ -26,6 +28,8 @@ target_link_libraries(core
         bx
         bimg
         glfw
+        OpenMeshCore
+        OpenMeshTools
 )
 
 set(SHADERC_EXECUTABLE 

@@ -82,16 +82,39 @@ namespace lmcore
         FPPoint position;
         BBox bounding;
         FPConnection connection;
+
+        FPLineSegment segment;
+        float low = 0.f;
+        float high = 2.4f;
+    };
+
+    struct FPSolidifiedWallGeoData
+    {
+        //std::vector<lmv::PosColorVertex> baseForm;
     };
 
     struct FPWallSegment
     {
         FPLineSegment value;
+    
+        float override_height = 0.f;
+        float override_width = 0.f;
+    
+        //temp
+        std::vector<uint32_t> opening_indices;
+        FPSolidifiedWallGeoData data;
     };
 
     struct FPData
     {
-        
+        float global_wall_height = 3.6;
+        float global_wall_thickness = 0.2;
+        float global_floor_thickness = 0.2;
+        float global_ceiling_thickness = 0.2;
+
+        float global_door_height = 2.4f;
+        float global_window_bottom_height = 1.2f;
+        float global_window_top_height = 2.4f;
     };
 
     struct FloorPlan

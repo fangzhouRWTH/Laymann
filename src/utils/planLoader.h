@@ -1,11 +1,13 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <random>
 
 #include "nlohmann/json.hpp"
 
 #include "core/data.h"
 #include "core/utils.h"
+#include "core/mesh.h"
 
 using js = nlohmann::json;
 
@@ -35,6 +37,155 @@ namespace lmv
         return lmcore::EOpeningType::ENUM_MAX;
     }
 
+    class FloorPlanWallMerger
+    {
+        public:
+            FloorPlanWallMerger(lmcore::FloorPlan plan) : mPlan(plan){}
+            void Merge()
+            {
+                uint32_t room_count = mPlan.rooms.size();
+                mRoomSegmentsCache.resize(room_count);
+                
+                getSegments(0,mRoomSegmentsCache[0]);
+                uint32_t counter = 1;
+
+                for(auto i = 1; i < room_count; i++)
+                {
+                    for(auto j = 0; j < counter; j++)
+                    {
+                        auto integrated = mRoomSegmentsCache[j];
+                        getSegments(i,mRoomSegmentsCache[i]);
+                        mergeSegments(mRoomSegmentsCache[j],mRoomSegmentsCache[i]);
+                    }
+                    counter++;
+                }
+
+                solidifyCache();
+                mergeOpenings();
+
+            }
+        private:
+            void solidifyWalls()
+            {
+                
+            }
+
+            void mergeOpenings()
+            {
+                auto osize = mPlan.openings.size();
+                std::vector<bool> visited(osize,false);
+                for(auto & w : mPlan.walls)
+                {
+                    for(auto i = 0; i < osize; i++)
+                    {
+                        auto & op = mPlan.openings[i];
+                        auto start = op.segment.start.value;
+                        auto end = op.segment.end.value;
+
+                        auto pos = op.position.value;
+
+                        bool s_on = lmcore::is_point_on_segment(start,w.value);
+                        bool e_on = lmcore::is_point_on_segment(end, w.value);
+
+                        //todo, handle it
+                        assert(!(s_on^e_on));
+                        if(!(s_on && e_on))
+                            continue;
+
+                        assert(visited[i]==false);
+                        visited[i] = true;
+                        w.opening_indices.push_back(i);
+                    }
+                }
+            }
+
+            void solidifyCache()
+            {
+                int size = mRoomSegmentsCache.size();
+                for(int i = 0; i < size; i++)
+                {
+                    auto & room_cache = mRoomSegmentsCache[i];
+                    auto & room = mPlan.rooms[i];
+
+                    for(auto rseg : room_cache)
+                    {
+                        int solidified = mPlan.walls.size();
+                        bool exist = false;
+                        for(auto j = 0; j < solidified; j++)
+                        {
+                            if(mPlan.walls[j].value == rseg)
+                            {
+                                room.wallIndices.push_back(j);
+                                exist = true;
+                                break;
+                            }
+                        }
+                        if(exist)
+                            continue;
+                        mPlan.walls.push_back(lmcore::FPWallSegment{.value = rseg});
+                        room.wallIndices.push_back(solidified);
+                    }
+                }
+            }
+
+            void getSegments(uint32_t room_i,std::vector<lmcore::FPLineSegment> & segs)
+            {
+                auto points = mPlan.rooms[room_i].geometries[0].points;
+                segs.clear();
+                for(auto i = 0; i < points.size(); i++)
+                {
+                    auto j = i+1;
+                    if(i==points.size()-1)
+                    {
+                        j = 0;
+                    }
+                    segs.push_back(lmcore::FPLineSegment{.start = points[i],.end = points[j]});
+                }
+            }
+
+            void cutSegmentsWithSingleSegment(std::vector<lmcore::FPLineSegment> & input, lmcore::FPLineSegment cutter)
+            {
+                std::vector<lmcore::FPLineSegment> output;
+                for(auto i : input)
+                {
+                    auto res = lmcore::find_segment_intersection_xy(i,cutter);
+                    if(res.hasIntersection)
+                    {
+                        for(auto idx:res.firstIndices)
+                        {
+                            output.push_back(res.newSegments[idx]);
+                        }     
+                    }
+                    else
+                        output.push_back(i);  
+                }
+                input.swap(output);
+            }
+
+            void mergeSegments(std::vector<lmcore::FPLineSegment> & ls0, std::vector<lmcore::FPLineSegment> & ls1)
+            {
+                uint32_t size0 = ls0.size();
+                uint32_t size1 = ls1.size();
+                std::vector<lmcore::FPLineSegment> temp0(ls0);
+                std::vector<lmcore::FPLineSegment> temp1(ls1);
+                for(auto c1 : ls1)
+                {
+                    cutSegmentsWithSingleSegment(temp0,c1);
+                }
+
+                for(auto c0: ls0)
+                {
+                    cutSegmentsWithSingleSegment(temp1,c0);
+                }
+
+                ls0.swap(temp0);
+                ls1.swap(temp1);
+            }
+        public:
+            std::vector<std::vector<lmcore::FPLineSegment>> mRoomSegmentsCache;
+            lmcore::FloorPlan mPlan;
+    };
+
     lmcore::FloorPlan load_floor_plan_from_json(const std::string & path)
     {
         lmcore::FloorPlan plan;
@@ -47,6 +198,33 @@ namespace lmv
         file >> jdata;
         
         auto rooms = jdata["rooms"];
+
+        float offsetx = 0.f;
+        float offsety = 0.f;
+        uint32_t count = 0u;
+        for(auto r : rooms)
+        {
+            lmcore::FPRoom rm;
+            std::string name = r["name"];
+            std::string type = r["type"];
+            auto geo = r["geometry"];
+            auto t = cast_room_type(type);
+            rm.name = name;
+            rm.type = t;
+            for(auto _g : geo)
+            {
+                for(auto _p : _g)
+                {
+                    offsetx += float(_p[0]);
+                    offsety += float(_p[1]);
+                    count++;
+                }
+            }
+        }
+
+        offsetx /= count;
+        offsety /= count;
+
         for(auto r : rooms)
         {
             lmcore::FPRoom rm;
@@ -64,8 +242,8 @@ namespace lmv
                 for(auto _p : _g)
                 {
                     lmcore::FPPoint p;
-                    p.value.x() = _p[0];
-                    p.value.y() = _p[1];
+                    p.value.x() = float(_p[0]) - offsetx;
+                    p.value.y() = float(_p[1]) - offsety;
                     p.value.z() = 0.0f;
                     g.points.push_back(p);
                 }
@@ -118,32 +296,56 @@ namespace lmv
                 //todo throw exception
             }
             
-            float x1 = position[0];
-            float x2 = position[2];
-            float y1 = position[1];
-            float y2 = position[3];
+            float x1 = float(position[0]) - offsetx;
+            float x2 = float(position[2]) - offsetx;
+            float y1 = float(position[1]) - offsety;
+            float y2 = float(position[3]) - offsety;
             float tempz_h = 2.2f;
 
             opening.position.value = lmcore::Vec3f{(x1+x2)/2.f,(y1+y2)/2.f,0.f};
             lmcore::BBox bbox;
-            bbox.xyz = lmcore::Vec3f((x2-x1)/2.f,(y2-y1)/2.f,tempz_h/2.f);
+            bbox.xyz = lmcore::Vec3f(abs(x2-x1)/2.f,abs(y2-y1)/2.f,abs(tempz_h)/2.f);
             opening.bounding = bbox;
+
+            lmcore::FPLineSegment seg;
+            if(opening.bounding.xyz.x()>opening.bounding.xyz.y())
+            {
+                seg.start.value = opening.position.value - lmcore::Vec3f{opening.bounding.xyz.x(),0.f,0.f};
+                seg.end.value = opening.position.value + lmcore::Vec3f{opening.bounding.xyz.x(),0.f,0.f};
+            }
+            else
+            {
+                seg.start.value = opening.position.value - lmcore::Vec3f{0.f, opening.bounding.xyz.y(), 0.f};
+                seg.end.value = opening.position.value + lmcore::Vec3f{0.f, opening.bounding.xyz.y(), 0.f};
+            }
+
+            opening.segment = seg;
+            if(opening.type == lmcore::EOpeningType::Window)
+            {
+                opening.low = plan.data.global_window_bottom_height;
+                opening.high = plan.data.global_window_top_height;
+            }
+            else
+            {
+                opening.low = 0.f;
+                opening.high = plan.data.global_door_height;
+            }
 
             plan.openings.push_back(opening);
         }
         
         //to merge geometries
         std::vector<std::vector<uint32_t>> room_wall_indices;
+
         return plan;
     }
 
     //temp
-    void create_vertices_indices_of_room_geometry(lmcore::FloorPlan & plan, std::vector<lmcore::PosColorVertex> & vertices, std::vector<int> & indices)
+    void create_vertices_of_room_geometry(lmcore::FloorPlan & plan, std::vector<lmcore::PosColorVertex> & vertices)
     {
-        float r = 0.8f;
-        float g = 0.3f;
-        float b = 0.2f;
-        float a = 1.f;
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_real_distribution<float> dis(0.0,1.0);
         for(auto room : plan.rooms)
         {
             auto size = room.geometries[0].points.size();
@@ -159,6 +361,12 @@ namespace lmv
                 iv.x = ip.x();
                 iv.y = ip.y();
                 iv.z = ip.z();
+
+                float r = dis(gen);
+                float g = dis(gen);
+                float b = dis(gen);
+                float a = 1.f;
+
                 iv.r = r;
                 iv.g = g;
                 iv.b = b;
@@ -173,7 +381,52 @@ namespace lmv
                 jv.a = a;
 
                 vertices.push_back(iv);vertices.push_back(jv);
-                indices.push_back(i);indices.push_back(i+1);
+                //indices.push_back(i);indices.push_back(i+1);
+            }
+        }
+    }
+
+    void create_vertices_indices_from_merger(FloorPlanWallMerger & merger, std::vector<lmcore::PosColorVertex> & vertices)
+    {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_real_distribution<float> dis(0.0,1.0);
+
+        for(auto roomc : merger.mRoomSegmentsCache)
+        {
+            auto size = roomc.size();
+            for(auto s : roomc)
+            {
+                float r = dis(gen);
+                float g = dis(gen);
+                float b = dis(gen);
+                float a = 1.f;
+
+                auto ip = s.start.value;
+                auto jp = s.end.value;
+                lmcore::PosColorVertex iv;
+                lmcore::PosColorVertex jv;
+                iv.x = ip.x();
+                iv.y = ip.y();
+                iv.z = ip.z();  
+                iv.r = r;
+                iv.g = g;
+                iv.b = b;
+                iv.a = a;
+
+                jv.x = jp.x();
+                jv.y = jp.y();
+                jv.z = jp.z();
+                jv.r = r;
+                jv.g = g;
+                jv.b = b;
+                jv.a = a;
+
+                // float z_offset = dis(gen);
+                // iv.z = z_offset;
+                // jv.z = z_offset;
+
+                vertices.push_back(iv);vertices.push_back(jv);
             }
         }
     }

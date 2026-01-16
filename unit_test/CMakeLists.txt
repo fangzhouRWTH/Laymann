@@ -16,4 +16,5 @@ target_include_directories(UT_Geometry
         ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_SOURCE_DIR}/third_party/eigen
         ${CMAKE_SOURCE_DIR}/third_party/catch2
+        ${CMAKE_SOURCE_DIR}/third_party/libig/include
 )

@@ -5,12 +5,44 @@
 
 #include <stdint.h>
 #include <algorithm>
+#include <iostream>
 
 namespace lmcore{
     Vec3f get_line_direction(const FPLineSegment & line)
     {
         Vec3f dir = line.start.value - line.end.value;
         return dir;
+    }
+
+    bool is_point_on_segment(const Vec3f & p, const lmcore::FPLineSegment & seg)
+    {
+        const float EPS = 1e-6f; // 根据精度需求调整
+
+        Vec3f start = seg.start.value;
+        Vec3f end   = seg.end.value;
+
+        // 向量
+        Vec3f v_seg = end - start;      // 线段方向
+        Vec3f v_pt  = p - start;        // 从起点到点 p
+
+        // 特殊情况：线段退化为一个点
+        if (v_seg.norm() < EPS) {
+            return (p - start).norm() < EPS;
+        }
+
+        // 1. 检查共线性：叉积应为零（因为共线 ⇒ 平行 ⇒ 叉积 = 0）
+        Vec3f cross = v_pt.cross(v_seg);
+        if (cross.norm() > EPS) {
+            return false; // 不共线
+        }
+
+        // 2. 检查投影参数 t 是否在 [0, 1] 范围内
+        float dot = v_pt.dot(v_seg);
+        float len2 = v_seg.squaredNorm(); // 避免开方，用平方长度
+
+        float t = dot / len2;
+
+        return (t >= -EPS) && (t <= 1.0f + EPS); // 允许端点附近微小误差
     }
 
     // Function to find the intersection point if it exists
@@ -112,7 +144,7 @@ namespace lmcore{
             res.newSegments = {f_se1,f_se2,s_se1,s_se2};
             res.firstIndices = std::vector<uint32_t>{0,1};
             res.secondIndices = std::vector<uint32_t>{2,3};
-            return res;
+            //return res;
         }
 
         if((on_first || on_second) && is_parallel)
@@ -174,7 +206,7 @@ namespace lmcore{
                     res.firstIndices = {0};
                     res.secondIndices = {1};
                     res.intersectionPoints = {lmcore::FPPoint{.value = {points[indices[1]].x(),points[indices[1]].y(),first.start.value.z()}}};
-                    return res;
+                    //return res;
                 }
 
                 if(dis_i == 2 && dis_j == 2)
