@@ -28,8 +28,6 @@ target_link_libraries(core
         bx
         bimg
         glfw
-        OpenMeshCore
-        OpenMeshTools
 )
 
 set(SHADERC_EXECUTABLE 
@@ -85,4 +83,13 @@ add_custom_target(bgfx_shaders
         ${FS_GRID_BIN}
 )
 
+add_dependencies(bgfx_shaders shaderc)
 add_dependencies(core bgfx_shaders)
+
+add_custom_command(
+    OUTPUT ${CMAKE_BINARY_DIR}/data
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/data ${CMAKE_BINARY_DIR}/data
+    COMMENT "Copying files..."
+)
+
+add_custom_target(CopyFiles ALL DEPENDS ${CMAKE_BINARY_DIR}/data)

@@ -2,7 +2,6 @@
 #include <vector>
 #include "core/utils.h"
 #include "core/data.h"
-#include "igl/cotmatrix.h"
 
 bool is_segment_matched(const std::vector<lmcore::FPLineSegment> & first,const std::vector<lmcore::FPLineSegment> & second)
 {
