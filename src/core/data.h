@@ -8,6 +8,20 @@
 
 namespace lmcore
 {
+    struct PosColorVertex
+    {
+        float x = 0.f;
+        float y = 0.f;
+        float z = 0.f;
+        float nx = 0.f;
+        float ny = 0.f;
+        float nz = 1.f;
+        float r = 1.f;
+        float g = 1.f;
+        float b = 1.f;
+        float a = 1.f;
+    };
+
     struct BBox
     {
         Vec3f xyz;
@@ -90,7 +104,7 @@ namespace lmcore
 
     struct FPSolidifiedWallGeoData
     {
-        //std::vector<lmv::PosColorVertex> baseForm;
+        std::vector<PosColorVertex> baseForm;
     };
 
     struct FPWallSegment
@@ -107,7 +121,7 @@ namespace lmcore
 
     struct FPData
     {
-        float global_wall_height = 3.6;
+        float global_wall_height = 3.f;
         float global_wall_thickness = 0.2;
         float global_floor_thickness = 0.2;
         float global_ceiling_thickness = 0.2;
@@ -123,13 +137,6 @@ namespace lmcore
         std::vector<FPOpening> openings;
         std::vector<FPWallSegment> walls;
         FPData data;
-    };
-
-    struct PosColorVertex
-    {
-        float x, y, z;
-        float nx, ny, nz;
-        float r, g, b, a;
     };
 
     struct RenderObject

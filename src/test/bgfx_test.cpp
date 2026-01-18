@@ -239,13 +239,13 @@ int main()
     // }
 
     auto rootpath = lmv::getExeFolderPath();
-    auto plan_0_path = rootpath + std::string("/../data/plan/l_singleStudio01.json");
-    //auto plan_0_path = rootpath + std::string("/../data/plan/l_twoBedroomApartment03.json");
+    //auto plan_0_path = rootpath + std::string("/../data/plan/l_singleStudio01.json");
+    auto plan_0_path = rootpath + std::string("/../data/plan/l_twoBedroomApartment03.json");
     auto fp_0 = lmv::load_floor_plan_from_json(plan_0_path);
     std::vector<lmcore::PosColorVertex> fpline_vertices;
     std::vector<int> fpline_indices;
     lmv::FloorPlanWallMerger merger(fp_0);
-    merger.Merge();
+    fp_0 = merger.Merge();
     //lmv::create_vertices_indices_of_room_geometry(fp_0,fpline_vertices,fpline_indices);
     lmv::create_vertices_indices_from_merger(merger,fpline_vertices);
 
@@ -310,6 +310,17 @@ int main()
     // bgfx::IndexBufferHandle ibh = bgfx::createIndexBuffer(
     //     bgfx::makeRef(s_cubeIndices, sizeof(s_cubeIndices))
     // );
+
+    std::vector<lmcore::PosColorVertex> temp_walls;
+    for(auto w : fp_0.walls)
+    {
+        for(auto v : w.data.baseForm)
+        {
+            temp_walls.push_back(v);
+        }
+    }
+    bgfx::VertexBufferHandle vbh_walls = bgfx::createVertexBuffer(bgfx::makeRef(temp_walls.data(), sizeof(lmcore::PosColorVertex) * temp_walls.size()), s_PosColorLayout);
+
     bgfx::VertexBufferHandle vbh_grid = bgfx::createVertexBuffer(bgfx::makeRef(gridVertices, sizeof(gridVertices)),s_PosColorLayout);
     bgfx::IndexBufferHandle ibh_grid = bgfx::createIndexBuffer(bgfx::makeRef(gridIndices, sizeof(gridIndices)));
 
@@ -490,8 +501,8 @@ int main()
         );
         bgfx::submit(kViewId, program_grid);
 
-        // bgfx::setVertexBuffer(0, vbh);
-        // //bgfx::setIndexBuffer(ibh);
+        // bgfx::setVertexBuffer(0, vbh_walls);
+        // //bgfx::setIndexBuffer(ibh_grid);
         // bgfx::setUniform(u_camera, nf);
         // bgfx::setState(
         //     BGFX_STATE_WRITE_RGB
@@ -500,8 +511,22 @@ int main()
         //   | BGFX_STATE_DEPTH_TEST_LESS
         //   | BGFX_STATE_CULL_CW
         //   | BGFX_STATE_MSAA
+        //   | BGFX_STATE_PT_LINES
         // );
-        // bgfx::submit(kViewId, program);
+        // bgfx::submit(kViewId, program_grid);
+
+        bgfx::setVertexBuffer(0, vbh_walls);
+        //bgfx::setIndexBuffer(ibh);
+        bgfx::setUniform(u_camera, nf);
+        bgfx::setState(
+            BGFX_STATE_WRITE_RGB
+          | BGFX_STATE_WRITE_A
+          | BGFX_STATE_WRITE_Z
+          | BGFX_STATE_DEPTH_TEST_LESS
+          //| BGFX_STATE_CULL_CW
+          | BGFX_STATE_MSAA
+        );
+        bgfx::submit(kViewId, program);
 
         bgfx::frame();
     }
@@ -510,6 +535,7 @@ int main()
     bgfx::destroy(ibh_grid);
     bgfx::destroy(u_camera);
     bgfx::destroy(vbh);
+    bgfx::destroy(vbh_walls);
     bgfx::destroy(vbh_grid);
     bgfx::destroy(vbh_room_geo);
     bgfx::destroy(ibh_room_geo);

@@ -30,9 +30,9 @@ namespace lmv
 
     lmcore::EOpeningType cast_opening_type(const std::string & type)
     {
-        if(type == "Door")
+        if(type == "door")
             return lmcore::EOpeningType::Door;
-        if(type == "Window")
+        if(type == "window")
             return lmcore::EOpeningType::Window;
         return lmcore::EOpeningType::ENUM_MAX;
     }
@@ -41,7 +41,7 @@ namespace lmv
     {
         public:
             FloorPlanWallMerger(lmcore::FloorPlan plan) : mPlan(plan){}
-            void Merge()
+            lmcore::FloorPlan Merge()
             {
                 uint32_t room_count = mPlan.rooms.size();
                 mRoomSegmentsCache.resize(room_count);
@@ -62,12 +62,168 @@ namespace lmv
 
                 solidifyCache();
                 mergeOpenings();
+                solidifyWalls();
 
+                return mPlan;
             }
         private:
             void solidifyWalls()
             {
+                for(auto & wall : mPlan.walls)
+                {
+                    std::vector<lmcore::Vec3f> wall_points;
+                    auto segwall = wall.value;
+                    wall_points.push_back(segwall.start.value);
+                    wall_points.push_back(segwall.end.value);
+
+                    for(auto oi: wall.opening_indices)
+                    {
+                        auto opening = mPlan.openings[oi];
+                        wall_points.push_back(opening.segment.start.value);
+                        wall_points.push_back(opening.segment.end.value);
+                    }
+
+                    if(segwall.start.value.x() - segwall.end.value.x() >0.000001f)
+                    {
+                        std::sort(wall_points.begin(), wall_points.end(), [&](const lmcore::Vec3f & a, const lmcore::Vec3f & b) {
+                            return a.x() < b.x();
+                        });      
+                    }
+                    else
+                    {
+                        std::sort(wall_points.begin(), wall_points.end(), [&](const lmcore::Vec3f & a, const lmcore::Vec3f & b) {
+                            return a.y() < b.y();
+                        }); 
+                    }
+
+                    auto _equal = [](lmcore::Vec3f v1, lmcore::Vec3f v2)->bool
+                    {
+                        return (v1-v2).squaredNorm()<0.000001f;
+                    };
+
+                    std::vector<lmcore::Vec3f> wall_points_temp;
+                    for(auto p : wall_points)
+                    {
+                        if(wall_points_temp.size() > 0 && _equal(wall_points_temp.back(),p))
+                        {
+                            continue;
+                        }
+                        wall_points_temp.push_back(p);
+                    }
+                    //wall_points.swap(wall_points_temp);
+
+                    int size = wall_points.size();
+                    for(int i = 0; i < size-1; i++)
+                    {
+                        const auto & p0 = wall_points[i];
+                        const auto & p1 = wall_points[i+1];
+
+                        bool is_opening = false;
+                        for(auto oi: wall.opening_indices)
+                        {
+                            const auto & op = mPlan.openings[oi];
+                            const auto & o0 = op.segment.start.value;
+                            const auto & o1 = op.segment.end.value;
+
+                            if((_equal(p0, o0)&&_equal(p1, o1))||(_equal(p1, o0)&&_equal(p0, o1)))
+                            {
+                                is_opening = true;
+                                lmcore::PosColorVertex v0;
+                                lmcore::PosColorVertex v1;
+                                lmcore::PosColorVertex v2;
+                                lmcore::PosColorVertex v3;
+                                
+                                v0.x = p0.x();
+                                v0.y = p0.y();
+                                v0.z = p0.z() + op.high;
+                                
+                                v1.x = p1.x();
+                                v1.y = p1.y();
+                                v1.z = p1.z() + op.high;
+
+                                v2.x = p0.x();
+                                v2.y = p0.y();
+                                v2.z = p0.z() + mPlan.data.global_wall_height;
+                                
+                                v3.x = p1.x();
+                                v3.y = p1.y();
+                                v3.z = p1.z() + mPlan.data.global_wall_height;
+                        
+                                wall.data.baseForm.push_back(v0);
+                                wall.data.baseForm.push_back(v1);
+                                wall.data.baseForm.push_back(v2);
+
+                                wall.data.baseForm.push_back(v1);
+                                wall.data.baseForm.push_back(v3);
+                                wall.data.baseForm.push_back(v2);
+
+                                if(op.type == lmcore::EOpeningType::Window)                               
+                                {
+                                    lmcore::PosColorVertex v0;
+                                    lmcore::PosColorVertex v1;
+                                    lmcore::PosColorVertex v2;
+                                    lmcore::PosColorVertex v3;
+                                    
+                                    v0.x = p0.x();
+                                    v0.y = p0.y();
+                                    v0.z = p0.z();
+                                    
+                                    v1.x = p1.x();
+                                    v1.y = p1.y();
+                                    v1.z = p1.z();
+
+                                    v2.x = p0.x();
+                                    v2.y = p0.y();
+                                    v2.z = p0.z() + op.low;
+                                    
+                                    v3.x = p1.x();
+                                    v3.y = p1.y();
+                                    v3.z = p1.z() + op.low;
+                            
+                                    wall.data.baseForm.push_back(v0);
+                                    wall.data.baseForm.push_back(v1);
+                                    wall.data.baseForm.push_back(v2);
+                                    
+                                    wall.data.baseForm.push_back(v1);
+                                    wall.data.baseForm.push_back(v3);
+                                    wall.data.baseForm.push_back(v2);
+                                }
+                            }
+                        }
+
+                        if(is_opening)
+                            continue;
+
+                        lmcore::PosColorVertex v0;
+                        lmcore::PosColorVertex v1;
+                        lmcore::PosColorVertex v2;
+                        lmcore::PosColorVertex v3;
+                        
+                        v0.x = p0.x();
+                        v0.y = p0.y();
+                        v0.z = p0.z();
+                        
+                        v1.x = p1.x();
+                        v1.y = p1.y();
+                        v1.z = p1.z();
+
+                        v2.x = p0.x();
+                        v2.y = p0.y();
+                        v2.z = p0.z() + mPlan.data.global_wall_height;
+                        
+                        v3.x = p1.x();
+                        v3.y = p1.y();
+                        v3.z = p1.z() + mPlan.data.global_wall_height;
                 
+                        wall.data.baseForm.push_back(v0);
+                        wall.data.baseForm.push_back(v1);
+                        wall.data.baseForm.push_back(v2);
+                        
+                        wall.data.baseForm.push_back(v1);
+                        wall.data.baseForm.push_back(v3);
+                        wall.data.baseForm.push_back(v2);
+                    }
+                }
             }
 
             void mergeOpenings()
