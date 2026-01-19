@@ -83,7 +83,7 @@ namespace lmv
                         wall_points.push_back(opening.segment.end.value);
                     }
 
-                    if(segwall.start.value.x() - segwall.end.value.x() >0.000001f)
+                    if(abs(segwall.start.value.x() - segwall.end.value.x()) >0.000001f)
                     {
                         std::sort(wall_points.begin(), wall_points.end(), [&](const lmcore::Vec3f & a, const lmcore::Vec3f & b) {
                             return a.x() < b.x();
