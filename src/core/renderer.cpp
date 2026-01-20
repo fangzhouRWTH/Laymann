@@ -89,6 +89,7 @@ class Renderer::Impl{
                 .add(bgfx::Attrib::Color0,   4, bgfx::AttribType::Float, true)
                 .end();
 
+            mLastTime = glfwGetTime();
             return true;
         }
 
@@ -154,6 +155,128 @@ class Renderer::Impl{
             mRenderObjects.destroy();
         }
 
+        bool ShouldClose()
+        {
+            return !glfwWindowShouldClose(mWindowPtr->mWindow);
+        }
+
+        void PreUpdate()
+        {
+            mCurrentTime = glfwGetTime();
+            float dt = (float)(mCurrentTime - mLastTime);
+            mLastTime = mCurrentTime;
+
+            glfwPollEvents();
+
+            int fbW, fbH;
+            glfwGetFramebufferSize(mWindowPtr->mWindow, &fbW, &fbH);
+            if (fbW != mWindowPtr->mWidth || fbH != mWindowPtr->mHeight)
+            {
+                mWindowPtr->mWidth = fbW;
+                mWindowPtr->mHeight = fbH;
+                bgfx::reset((uint32_t)fbW, (uint32_t)fbH, BGFX_RESET_VSYNC);
+                bgfx::setViewRect(mViewId, 0, 0, (uint16_t)fbW, (uint16_t)fbW);
+            }
+
+            //TODO move to camera/controller
+            {
+                float moveForward = 0.0f;
+                float moveRight   = 0.0f;
+                float moveUp      = 0.0f;
+
+                auto window = mWindowPtr->mWindow;
+                if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) moveForward += 1.0f;
+                if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) moveForward -= 1.0f;
+                if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) moveRight   -= 1.0f;
+                if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) moveRight   += 1.0f;
+                if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) moveUp      += 1.0f;
+                if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) moveUp      -= 1.0f;
+
+                if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+                {
+                    double mx, my;
+                    glfwGetCursorPos(window, &mx, &my);
+
+                    if (!mController.rotating)
+                    {
+                        mController.rotating = true;
+                        mController.lastMouseX = mx;
+                        mController.lastMouseY = my;
+                    }
+                    else
+                    {
+                        double dx = mx - mController.lastMouseX;
+                        double dy = my - mController.lastMouseY;
+                        mController.lastMouseX = mx;
+                        mController.lastMouseY = my;
+
+                        mCamera.yaw   -= (float)dx * mController.mouseSensitivity;
+                        mCamera.pitch -= (float)dy * mController.mouseSensitivity;
+
+                        const float limit = bx::toRad(89.5f);
+                        if (mCamera.pitch >  limit) mCamera.pitch =  limit;
+                        if (mCamera.pitch < -limit) mCamera.pitch = -limit;
+                    }
+                }
+                else
+                {
+                    mController.rotating = false;
+                }
+
+                lmcore::Vec3f forward{
+                    -std::sin(mCamera.yaw) * std::cos(mCamera.pitch),
+                    -std::cos(mCamera.yaw) * std::cos(mCamera.pitch),
+                    std::sin(mCamera.pitch),
+                };
+                forward.normalize();
+
+                lmcore::Vec3f worldUp{0.0f, 0.0f, 1.0f};
+                lmcore::Vec3f right = forward.cross(worldUp);
+                right.normalize();
+                lmcore::Vec3f up = right.cross(forward);
+
+                lmcore::Vec3f moveDir{
+                    forward.x() * moveForward + right.x() * moveRight + up.x() * moveUp,
+                    forward.y() * moveForward + right.y() * moveRight + up.y() * moveUp,
+                    forward.z() * moveForward + right.z() * moveRight + up.z() * moveUp
+                };
+
+                if (moveForward != 0.0f || moveRight != 0.0f || moveUp != 0.0f)
+                {
+                    moveDir.normalize();
+                    mCamera.position = mCamera.position + moveDir * (mController.moveSpeed * dt);
+                }
+
+                float view[16];
+                float proj[16];
+
+                bx::Vec3 eye = { mCamera.position.x(), mCamera.position.y(), mCamera.position.z() };
+                bx::Vec3 at  = { mCamera.position.x() + forward.x(),
+                                 mCamera.position.y() + forward.y(),
+                                 mCamera.position.z() + forward.z() };
+                bx::Vec3 upArr = { up.x(), up.y(), up.z() };
+
+                bx::mtxLookAt(view, eye, at, upArr);
+
+                float aspect = (mWindowPtr->mHeight > 0) ? (float)mWindowPtr->mWidth / (float)mWindowPtr->mHeight : 1.0f;
+                const bgfx::Caps* caps = bgfx::getCaps();
+                float nearp = 0.1f;
+                float farp = 100.f;
+                float nf[4] = {nearp, farp, 0, 0};
+                bx::mtxProj(proj, 60.0f, aspect, nearp, farp, caps->homogeneousDepth);
+                bgfx::setViewTransform(mViewId, view, proj);
+                
+                //this is not right
+                float mtx[16];
+                bx::mtxIdentity(mtx);
+                //this is not right
+                
+                bgfx::touch(mViewId);
+                bgfx::setTransform(mtx);
+                bgfx::setUniform(u_camera, nf);
+            }
+        }
+
     private:
         std::unordered_map<std::string, RProgram> mPrograms;
         std::unordered_map<std::string, bgfx::UniformHandle> mUniforms;
@@ -162,6 +285,11 @@ class Renderer::Impl{
         const bgfx::ViewId mViewId = 0;
 
         bgfx::VertexLayout mPosColorLayout;
+
+        Camera mCamera;
+        Controller mController;
+        double mLastTime;
+        double mCurrentTime;
 };
 
 Renderer::Renderer(std::shared_ptr<Window> wptr) : impl(std::make_unique<Impl>(wptr))
