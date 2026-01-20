@@ -66,15 +66,6 @@ static Vec3 normalize(const Vec3& v)
 
 static bgfx::VertexLayout s_PosColorLayout;
 
-static void initVertexLayout()
-{
-    s_PosColorLayout.begin()
-        .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
-        .add(bgfx::Attrib::Normal,   3, bgfx::AttribType::Float, true)
-        .add(bgfx::Attrib::Color0,   4, bgfx::AttribType::Float, true)
-        .end();
-}
-
 static bgfx::ShaderHandle loadShaderBin(const char* _path)
 {
     std::string path = _path;
@@ -171,6 +162,15 @@ class Window
         GLFWwindow* mWindow = nullptr;
         Display* x11Display;
         ::Window x11Window;
+};
+
+struct Camera
+{
+    lmcore::Vec3f position = {0.f,0.f,0.f};
+    float yaw = 3.1415926f;
+    float pitch = 0.f;
+
+
 };
 
 class Renderer
