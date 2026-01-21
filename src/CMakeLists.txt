@@ -4,6 +4,7 @@ add_executable(core
     #PRIVATE
         ${CMAKE_SOURCE_DIR}/src/test/bgfx_test.cpp
         ${CMAKE_SOURCE_DIR}/src/system/files.cpp
+        ${CMAKE_SOURCE_DIR}/src/core/renderer.cpp
     #PUBLIC       
 )
 

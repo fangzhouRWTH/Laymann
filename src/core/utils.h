@@ -8,13 +8,13 @@
 #include <iostream>
 
 namespace lmcore{
-    Vec3f get_line_direction(const FPLineSegment & line)
+    inline Vec3f get_line_direction(const FPLineSegment & line)
     {
         Vec3f dir = line.start.value - line.end.value;
         return dir;
     }
 
-    bool is_point_on_segment(const Vec3f & p, const lmcore::FPLineSegment & seg)
+    inline bool is_point_on_segment(const Vec3f & p, const lmcore::FPLineSegment & seg)
     {
         const float EPS = 1e-6f; // 根据精度需求调整
 
@@ -46,7 +46,7 @@ namespace lmcore{
     }
 
     // Function to find the intersection point if it exists
-    bool is_point_on_segment(const Vec2f & p0,const Vec2f p1, const Vec2f & pi)
+    inline bool is_point_on_segment(const Vec2f & p0,const Vec2f p1, const Vec2f & pi)
     {
         PLine _pfirst = PLine::Through(p0,p1);
         float _sqrl_first = (p1-p0).squaredNorm();
@@ -67,7 +67,7 @@ namespace lmcore{
         std::vector<uint32_t> secondIndices;
     };
 
-    bool has_segment_intersection_xy(const FPLineSegment & first, const FPLineSegment & second)
+    inline bool has_segment_intersection_xy(const FPLineSegment & first, const FPLineSegment & second)
     {
         Vec2f p0 = {first.start.value.x(),first.start.value.y()};
         Vec2f p1 = {first.end.value.x(),first.end.value.y()};
@@ -116,7 +116,7 @@ namespace lmcore{
         return false;
     }
 
-    IntersectionResult find_segment_intersection_xy(const FPLineSegment & first, const FPLineSegment & second) {
+    inline IntersectionResult find_segment_intersection_xy(const FPLineSegment & first, const FPLineSegment & second) {
         Vec2f p0 = {first.start.value.x(),first.start.value.y()};
         Vec2f p1 = {first.end.value.x(),first.end.value.y()};
         Vec2f q0 = {second.start.value.x(),second.start.value.y()};

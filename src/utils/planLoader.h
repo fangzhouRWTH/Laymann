@@ -1,3 +1,4 @@
+#pragma once
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -13,7 +14,7 @@ using js = nlohmann::json;
 
 namespace lmv
 {
-    lmcore::ERoomType cast_room_type(const std::string & type)
+    inline lmcore::ERoomType cast_room_type(const std::string & type)
     {
         if(type == "Bedroom")
             return lmcore::ERoomType::Bedroom;
@@ -28,7 +29,7 @@ namespace lmv
         return lmcore::ERoomType::ENUM_MAX;
     }
 
-    lmcore::EOpeningType cast_opening_type(const std::string & type)
+    inline lmcore::EOpeningType cast_opening_type(const std::string & type)
     {
         if(type == "door")
             return lmcore::EOpeningType::Door;
@@ -342,7 +343,7 @@ namespace lmv
             lmcore::FloorPlan mPlan;
     };
 
-    lmcore::FloorPlan load_floor_plan_from_json(const std::string & path)
+    inline lmcore::FloorPlan load_floor_plan_from_json(const std::string & path)
     {
         lmcore::FloorPlan plan;
         std::ifstream file(path);
@@ -497,7 +498,7 @@ namespace lmv
     }
 
     //temp
-    void create_vertices_of_room_geometry(lmcore::FloorPlan & plan, std::vector<lmcore::PosColorVertex> & vertices)
+    inline void create_vertices_of_room_geometry(lmcore::FloorPlan & plan, std::vector<lmcore::PosColorVertex> & vertices)
     {
         std::random_device rd;
         std::mt19937 gen(rd());
@@ -542,7 +543,7 @@ namespace lmv
         }
     }
 
-    void create_vertices_indices_from_merger(FloorPlanWallMerger & merger, std::vector<lmcore::PosColorVertex> & vertices)
+    inline void create_vertices_indices_from_merger(FloorPlanWallMerger & merger, std::vector<lmcore::PosColorVertex> & vertices)
     {
         std::random_device rd;
         std::mt19937 gen(rd());

@@ -4,6 +4,35 @@
 namespace lmv
 {
 
+static bgfx::ShaderHandle loadShaderBin(const char* _path)
+{
+    std::string path = _path;
+
+    std::ifstream file(path, std::ios::binary | std::ios::ate);
+    if (!file.is_open())
+    {
+        std::cerr << "Failed to open shader file: " << path << std::endl;
+        return BGFX_INVALID_HANDLE;
+    }
+
+    std::streamsize size = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    const bgfx::Memory* mem = bgfx::alloc(uint32_t(size + 1));
+    if (!file.read((char*)mem->data, size))
+    {
+        std::cerr << "Failed to read shader file: " << path << std::endl;
+        return BGFX_INVALID_HANDLE;
+    }
+
+    mem->data[size] = '\0';
+
+    bgfx::ShaderHandle handle = bgfx::createShader(mem);
+    bgfx::setName(handle, path.c_str(), (uint16_t)path.size());
+
+    return handle;
+}
+
 struct RProgram
 {
     bgfx::ShaderHandle vsh;
@@ -55,6 +84,12 @@ struct RenderObjectContainer
     std::vector<RObject> robjs; 
 };
 
+//TODO
+struct FrameObjectContainer
+{
+    std::vector<FrameObject> objs;
+};
+
 class Renderer::Impl{
     public:
         Impl(std::shared_ptr<Window> wptr) : mWindowPtr(wptr)
@@ -83,13 +118,16 @@ class Renderer::Impl{
             bgfx::setViewClear(mViewId,BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x00000000, 1.f, 0);
             bgfx::setViewRect(mViewId, 0, 0, (uint16_t)mWindowPtr->mWidth, (uint16_t)mWindowPtr->mHeight);
 
-            s_PosColorLayout.begin()
+            mPosColorLayout.begin()
                 .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
                 .add(bgfx::Attrib::Normal,   3, bgfx::AttribType::Float, true)
                 .add(bgfx::Attrib::Color0,   4, bgfx::AttribType::Float, true)
                 .end();
 
             mLastTime = glfwGetTime();
+
+            initDefaultUniforms();
+
             return true;
         }
 
@@ -116,11 +154,16 @@ class Renderer::Impl{
             return true;
         }
 
-        RenderObjectHandle CreateRenderObject(const std::vector<lmcore::PosColorVertex> & vertices)
+        RenderObjectHandle CreateRenderObject(const lmcore::PosColorVertex* const vertices, uint32_t count)
         {
-            auto vbh = bgfx::createVertexBuffer(bgfx::makeRef(vertices.data(),vertices.size() * sizeof(lmcore::PosColorVertex)),mPosColorLayout);
+            auto vbh = bgfx::createVertexBuffer(bgfx::makeRef(vertices, count * sizeof(lmcore::PosColorVertex)),mPosColorLayout);
             RObject obj{.vbh = vbh};
             return mRenderObjects.add(obj);
+        }
+
+        void PushFrameObject(FrameObject obj)
+        {
+            mFrameObjects.objs.push_back(obj);
         }
 
         template<typename T>
@@ -128,7 +171,7 @@ class Renderer::Impl{
         {
             assert(mUniforms.find(name)==mUniforms.end());
             bgfx::UniformHandle handle;
-            if constexpr(std::is_same_v(T,bgfx::UniformType::Vec4))
+            if constexpr(std::is_same_v<T,lmcore::Vec4f>)
             {
                 handle = bgfx::createUniform("u_camera", bgfx::UniformType::Vec4);
             }
@@ -138,6 +181,17 @@ class Renderer::Impl{
             }
 
             mUniforms.insert({name,handle});
+        }
+
+        void UpdateUniform(const std::string & name, void * data, uint32_t size)
+        {
+            auto hi = mUniforms.find(name);
+
+            assert(hi!=mUniforms.end());
+            auto h = hi->second;
+            assert((h.idx!=bgfx::kInvalidHandle));
+
+            bgfx::setUniform(h, data, size);
         }
 
         void Destroy()
@@ -153,11 +207,12 @@ class Renderer::Impl{
             }
 
             mRenderObjects.destroy();
+            bgfx::shutdown();
         }
 
         bool ShouldClose()
         {
-            return !glfwWindowShouldClose(mWindowPtr->mWindow);
+            return glfwWindowShouldClose(mWindowPtr->mWindow);
         }
 
         void PreUpdate()
@@ -273,13 +328,58 @@ class Renderer::Impl{
                 
                 bgfx::touch(mViewId);
                 bgfx::setTransform(mtx);
-                bgfx::setUniform(u_camera, nf);
+                UpdateUniform("u_camera", nf, 1);
             }
+        }
+
+        void Update()
+        {
+            for(auto o : mFrameObjects.objs)
+            {
+                if(o.line)
+                    bgfx::setState(
+                    BGFX_STATE_WRITE_RGB
+                    | BGFX_STATE_WRITE_A
+                    | BGFX_STATE_WRITE_Z
+                    | BGFX_STATE_DEPTH_TEST_LESS
+                    //| BGFX_STATE_CULL_CW
+                    | BGFX_STATE_MSAA
+                    | BGFX_STATE_PT_LINES
+                    );
+                else
+                    bgfx::setState(
+                    BGFX_STATE_WRITE_RGB
+                    | BGFX_STATE_WRITE_A
+                    | BGFX_STATE_WRITE_Z
+                    | BGFX_STATE_DEPTH_TEST_LESS
+                    //| BGFX_STATE_CULL_CW
+                    | BGFX_STATE_MSAA
+                    );
+
+                auto b = mRenderObjects.robjs[o.h];
+                auto p = mPrograms.find(o.p);
+                bgfx::setVertexBuffer(0,b.vbh);
+                bgfx::submit(mViewId,p->second.pgh);
+            }
+        }
+
+        void PostUpdate()
+        {
+            bgfx::frame();
+            mFrameObjects.objs.clear();
+        }
+
+    private:
+        void initDefaultUniforms()
+        {
+            CreateUniform<lmcore::Vec4f>("u_camera");
         }
 
     private:
         std::unordered_map<std::string, RProgram> mPrograms;
         std::unordered_map<std::string, bgfx::UniformHandle> mUniforms;
+
+        FrameObjectContainer mFrameObjects;
         RenderObjectContainer mRenderObjects;
         std::shared_ptr<Window> mWindowPtr = nullptr;
         const bgfx::ViewId mViewId = 0;
@@ -300,8 +400,49 @@ Renderer::~Renderer()
 {
 
 }
+
 bool Renderer::Init()
 {
     return impl->Init();
+}
+
+bool Renderer::ShouldClose()
+{
+    return impl->ShouldClose();
+}
+
+void Renderer::PreUpdate()
+{
+    impl->PreUpdate();
+}
+
+void Renderer::Update()
+{
+    impl->Update();
+}
+
+void Renderer::PostUpdate()
+{
+    impl->PostUpdate();
+}
+
+void Renderer::Destroy()
+{
+    impl->Destroy();
+}
+
+bool Renderer::CreateProgram(const std::string &name, const std::string &shadern)
+{
+    return impl->CreateProgram(name, shadern);
+}
+
+void Renderer::PushFrameObject(FrameObject obj)
+{
+    impl->PushFrameObject(obj);
+}
+
+RenderObjectHandle Renderer::CreateRenderObject(const lmcore::PosColorVertex* const vertices, uint32_t count)
+{
+    return impl->CreateRenderObject(vertices, count);
 }
 }
