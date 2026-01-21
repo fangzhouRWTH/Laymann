@@ -149,6 +149,12 @@ namespace lmv
                                 v3.x = p1.x();
                                 v3.y = p1.y();
                                 v3.z = p1.z() + mPlan.data.global_wall_height;
+
+                                lmcore::Vec3f dir = lmcore::Vec3f{v1.x-v0.x, v1.y-v0.y, v1.z-v0.z}.cross(
+                                    lmcore::Vec3f{v2.x-v1.x, v2.y-v1.y, v2.z-v1.z}
+                                );
+                                
+                                dir.normalize();
                         
                                 wall.data.baseForm.push_back(v0);
                                 wall.data.baseForm.push_back(v1);

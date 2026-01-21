@@ -102,9 +102,16 @@ namespace lmcore
         float high = 2.4f;
     };
 
+    struct FPWallFace
+    {
+        std::vector<PosColorVertex> shape;
+        lmcore::Vec3f normal;
+    };
+
     struct FPSolidifiedWallGeoData
     {
         std::vector<PosColorVertex> baseForm;
+        std::vector<FPWallFace> faces;
     };
 
     struct FPWallSegment
