@@ -72,6 +72,7 @@ namespace lmv
             {
                 for(auto & wall : mPlan.walls)
                 {
+                    wall.data.faces.resize(2);
                     std::vector<lmcore::Vec3f> wall_points;
                     auto segwall = wall.value;
                     wall_points.push_back(segwall.start.value);
@@ -111,13 +112,86 @@ namespace lmv
                         }
                         wall_points_temp.push_back(p);
                     }
-                    //wall_points.swap(wall_points_temp);
+
+                    auto posadd = [](lmcore::PosColorVertex a, lmcore::Vec3f v) -> lmcore::PosColorVertex
+                    {
+                        a.x += v.x();
+                        a.y += v.y();
+                        a.z += v.z();
+                        return a;
+                    };
+
+                    auto pushsquare = [](std::vector<lmcore::PosColorVertex> & vec, lmcore::PosColorVertex p0, lmcore::PosColorVertex p1, lmcore::PosColorVertex p2, lmcore::PosColorVertex p3)
+                    {
+                        vec.push_back(p0);
+                        vec.push_back(p1);
+                        vec.push_back(p2);
+                        vec.push_back(p1);
+                        vec.push_back(p3);
+                        vec.push_back(p2);
+                    };
+
+                    auto pushband = [pushsquare](
+                        std::vector<lmcore::PosColorVertex> & vec, 
+                        lmcore::PosColorVertex p0, lmcore::PosColorVertex p1, lmcore::PosColorVertex p2, lmcore::PosColorVertex p3,
+                        lmcore::PosColorVertex p0_, lmcore::PosColorVertex p1_, lmcore::PosColorVertex p2_, lmcore::PosColorVertex p3_
+                    )
+                    {
+                        pushsquare(vec,p0_,p0,p2_,p2);
+                        pushsquare(vec,p1,p1_,p3,p3_);
+                        
+                        float r = 0.5f;
+                        float g = 0.6f;
+                        float b = .8f;
+
+                        p0.r = r;
+                        p0.g = g;
+                        p0.b = b;
+                        p0_.r = r;
+                        p0_.g = g;
+                        p0_.b = b;
+
+                        p1.r = r;
+                        p1.g = g;
+                        p1.b = b;
+                        p1_.r = r;
+                        p1_.g = g;
+                        p1_.b = b;
+
+                        p2.r = r;
+                        p2.g = g;
+                        p2.b = b;
+                        p2_.r = r;
+                        p2_.g = g;
+                        p2_.b = b;
+
+                        p3.r = r;
+                        p3.g = g;
+                        p3.b = b;
+                        p3_.r = r;
+                        p3_.g = g;
+                        p3_.b = b;
+                        pushsquare(vec,p0,p0_,p1,p1_);
+                        pushsquare(vec,p2_,p2,p3_,p3);
+                    };
 
                     int size = wall_points.size();
                     for(int i = 0; i < size-1; i++)
                     {
-                        const auto & p0 = wall_points[i];
-                        const auto & p1 = wall_points[i+1];
+                        float sOff = 0.f;
+                        float eOff = 0.f;
+                        if(i == 0)
+                            sOff = mPlan.data.global_wall_thickness/2.f;
+                        if(i == size-2)
+                            eOff = -mPlan.data.global_wall_thickness/2.f;
+
+                        auto p0 = wall_points[i];
+                        auto p1 = wall_points[i+1];
+
+                        lmcore::Vec3f oDir = p0 - p1;
+                        oDir.normalize();
+                        p0 = p0 + oDir *sOff;
+                        p1 = p1 + oDir *eOff;
 
                         bool is_opening = false;
                         for(auto oi: wall.opening_indices)
@@ -133,6 +207,16 @@ namespace lmv
                                 lmcore::PosColorVertex v1;
                                 lmcore::PosColorVertex v2;
                                 lmcore::PosColorVertex v3;
+
+                                lmcore::PosColorVertex v0_p;
+                                lmcore::PosColorVertex v1_p;
+                                lmcore::PosColorVertex v2_p;
+                                lmcore::PosColorVertex v3_p;
+
+                                lmcore::PosColorVertex v0_n;
+                                lmcore::PosColorVertex v1_n;
+                                lmcore::PosColorVertex v2_n;
+                                lmcore::PosColorVertex v3_n;
                                 
                                 v0.x = p0.x();
                                 v0.y = p0.y();
@@ -150,11 +234,31 @@ namespace lmv
                                 v3.y = p1.y();
                                 v3.z = p1.z() + mPlan.data.global_wall_height;
 
-                                lmcore::Vec3f dir = lmcore::Vec3f{v1.x-v0.x, v1.y-v0.y, v1.z-v0.z}.cross(
+                                lmcore::Vec3f dir = -lmcore::Vec3f{v1.x-v0.x, v1.y-v0.y, v1.z-v0.z}.cross(
                                     lmcore::Vec3f{v2.x-v1.x, v2.y-v1.y, v2.z-v1.z}
                                 );
                                 
                                 dir.normalize();
+                                dir = dir * mPlan.data.global_wall_thickness/2.f;
+
+                                v0_p = posadd(v0, dir);
+                                v1_p = posadd(v1, dir);
+                                v2_p = posadd(v2, dir);
+                                v3_p = posadd(v3, dir);
+
+                                v0_n = posadd(v0, -dir);
+                                v1_n = posadd(v1, -dir);
+                                v2_n = posadd(v2, -dir);
+                                v3_n = posadd(v3, -dir);
+
+                                pushsquare(wall.data.faces[0].shape,v0_p,v1_p,v2_p,v3_p);
+                                wall.data.faces[0].normal = dir;
+                                pushsquare(wall.data.faces[1].shape,v1_n,v0_n,v3_n,v2_n);
+                                wall.data.faces[1].normal = -dir;
+
+                                pushband(wall.data.bands,
+                                    v0_p,v1_p,v2_p,v3_p,
+                                    v0_n,v1_n,v2_n,v3_n);
                         
                                 wall.data.baseForm.push_back(v0);
                                 wall.data.baseForm.push_back(v1);
@@ -170,7 +274,17 @@ namespace lmv
                                     lmcore::PosColorVertex v1;
                                     lmcore::PosColorVertex v2;
                                     lmcore::PosColorVertex v3;
-                                    
+
+                                    lmcore::PosColorVertex v0_p;
+                                    lmcore::PosColorVertex v1_p;
+                                    lmcore::PosColorVertex v2_p;
+                                    lmcore::PosColorVertex v3_p;
+
+                                    lmcore::PosColorVertex v0_n;
+                                    lmcore::PosColorVertex v1_n;
+                                    lmcore::PosColorVertex v2_n;
+                                    lmcore::PosColorVertex v3_n;          
+
                                     v0.x = p0.x();
                                     v0.y = p0.y();
                                     v0.z = p0.z();
@@ -186,6 +300,31 @@ namespace lmv
                                     v3.x = p1.x();
                                     v3.y = p1.y();
                                     v3.z = p1.z() + op.low;
+
+                                    lmcore::Vec3f dir = -lmcore::Vec3f{v1.x-v0.x, v1.y-v0.y, v1.z-v0.z}.cross(
+                                        lmcore::Vec3f{v2.x-v1.x, v2.y-v1.y, v2.z-v1.z}
+                                    );
+                                
+                                    dir.normalize();
+                                    dir = dir * mPlan.data.global_wall_thickness / 2.f;
+
+                                    v0_p = posadd(v0, dir);
+                                    v1_p = posadd(v1, dir);
+                                    v2_p = posadd(v2, dir);
+                                    v3_p = posadd(v3, dir);
+
+                                    v0_n = posadd(v0, -dir);
+                                    v1_n = posadd(v1, -dir);
+                                    v2_n = posadd(v2, -dir);
+                                    v3_n = posadd(v3, -dir);
+
+                                    pushsquare(wall.data.faces[0].shape,v0_p,v1_p,v2_p,v3_p);
+                                    wall.data.faces[0].normal = dir;
+                                    pushsquare(wall.data.faces[1].shape,v1_n,v0_n,v3_n,v2_n);
+                                    wall.data.faces[1].normal = -dir;
+                                    pushband(wall.data.bands,
+                                    v0_p,v1_p,v2_p,v3_p,
+                                    v0_n,v1_n,v2_n,v3_n);
                             
                                     wall.data.baseForm.push_back(v0);
                                     wall.data.baseForm.push_back(v1);
@@ -205,7 +344,17 @@ namespace lmv
                         lmcore::PosColorVertex v1;
                         lmcore::PosColorVertex v2;
                         lmcore::PosColorVertex v3;
-                        
+
+                        lmcore::PosColorVertex v0_p;
+                        lmcore::PosColorVertex v1_p;
+                        lmcore::PosColorVertex v2_p;
+                        lmcore::PosColorVertex v3_p;
+
+                        lmcore::PosColorVertex v0_n;
+                        lmcore::PosColorVertex v1_n;
+                        lmcore::PosColorVertex v2_n;
+                        lmcore::PosColorVertex v3_n;          
+
                         v0.x = p0.x();
                         v0.y = p0.y();
                         v0.z = p0.z();
@@ -221,6 +370,31 @@ namespace lmv
                         v3.x = p1.x();
                         v3.y = p1.y();
                         v3.z = p1.z() + mPlan.data.global_wall_height;
+
+                        lmcore::Vec3f dir = -lmcore::Vec3f{v1.x-v0.x, v1.y-v0.y, v1.z-v0.z}.cross(
+                            lmcore::Vec3f{v2.x-v1.x, v2.y-v1.y, v2.z-v1.z}
+                        );
+                        
+                        dir.normalize();
+                        dir = dir * mPlan.data.global_floor_thickness / 2.f;
+
+                        v0_p = posadd(v0, dir);
+                        v1_p = posadd(v1, dir);
+                        v2_p = posadd(v2, dir);
+                        v3_p = posadd(v3, dir);
+
+                        v0_n = posadd(v0, -dir);
+                        v1_n = posadd(v1, -dir);
+                        v2_n = posadd(v2, -dir);
+                        v3_n = posadd(v3, -dir);
+
+                        pushsquare(wall.data.faces[0].shape,v0_p,v1_p,v2_p,v3_p);
+                        wall.data.faces[0].normal = dir;
+                        pushsquare(wall.data.faces[1].shape,v1_n,v0_n,v3_n,v2_n);
+                        wall.data.faces[1].normal = -dir;
+                        pushband(wall.data.bands,
+                        v0_p,v1_p,v2_p,v3_p,
+                        v0_n,v1_n,v2_n,v3_n);
                 
                         wall.data.baseForm.push_back(v0);
                         wall.data.baseForm.push_back(v1);
@@ -548,7 +722,6 @@ namespace lmv
             }
         }
     }
-
     inline void create_vertices_indices_from_merger(FloorPlanWallMerger & merger, std::vector<lmcore::PosColorVertex> & vertices)
     {
         std::random_device rd;

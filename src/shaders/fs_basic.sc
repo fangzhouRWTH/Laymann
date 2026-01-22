@@ -27,6 +27,6 @@ void main()
 
     //float ld = linearizeDepth(depth);
 
-    color.rgb *= (depth * 0.4 + 0.8);
+    color.rgb *= (depth * 0.4 + 0.8 * v_color0.xyz);
     gl_FragColor = color;
 }

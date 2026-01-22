@@ -112,6 +112,7 @@ namespace lmcore
     {
         std::vector<PosColorVertex> baseForm;
         std::vector<FPWallFace> faces;
+        std::vector<PosColorVertex> bands;
     };
 
     struct FPWallSegment

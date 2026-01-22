@@ -140,11 +140,25 @@ int main()
     std::vector<lmcore::PosColorVertex> temp_walls;
     for(auto w : fp_0.walls)
     {
-        for(auto v : w.data.baseForm)
+        // for(auto v : w.data.baseForm)
+        // {
+        //     temp_walls.push_back(v);
+        // }
+
+        for(auto & f : w.data.faces)
+        {
+            for(auto v : f.shape)
+            {
+                temp_walls.push_back(v);
+            }
+        }
+
+        for(auto v : w.data.bands)
         {
             temp_walls.push_back(v);
         }
     }
+
     auto wall_v = rd->CreateRenderObject(temp_walls.data(),temp_walls.size());
     lmv::FrameObject wallObj;
     wallObj.h = wall_v;
