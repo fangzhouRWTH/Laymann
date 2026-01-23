@@ -22,7 +22,7 @@
 #define GLFW_EXPOSE_NATIVE_X11
 #include <GLFW/glfw3native.h>
 
-namespace lmv
+namespace lmcore
 {
 //typedef uint32_t RenderProgramHandle;
 typedef uint32_t RenderObjectHandle;
@@ -47,6 +47,8 @@ class Window
                 return false;
             }
 
+            glfwMakeContextCurrent(mWindow);
+            glfwSwapInterval(0);
             //todo specify platform
             x11Display = glfwGetX11Display();
             x11Window  = glfwGetX11Window(mWindow);
@@ -68,9 +70,9 @@ class Window
 
 struct Camera
 {
-    lmcore::Vec3f position = {0.f,0.f,0.f};
+    lmcore::Vec3f position = {0.f,-0.5f,12.5f};
     float yaw = 3.1415926f;
-    float pitch = 0.f;
+    float pitch = -1.55f;
 
 
 };

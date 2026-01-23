@@ -18,6 +18,8 @@
 #include "core/utils.h"
 #include "core/renderer.h"
 
+#include <btBulletDynamicsCommon.h>
+
 #define GLFW_EXPOSE_NATIVE_X11
 #include <GLFW/glfw3native.h>
 
@@ -111,9 +113,10 @@ static lmcore::PosColorVertex cubeVertices[36] = {
 
 int main()
 {
-    auto wd = std::make_shared<lmv::Window>(1920,1080);
+    //btDefaultCollisionConfiguration * collisionConfiguration = new btDefaultCollisionConfiguration();
+    auto wd = std::make_shared<lmcore::Window>(1920,1080);
     wd->Init();
-    auto rd = std::make_shared<lmv::Renderer>(wd);
+    auto rd = std::make_shared<lmcore::Renderer>(wd);
     rd->Init();
 
     assert(rd->CreateProgram("grid","grid"));
@@ -121,30 +124,26 @@ int main()
 
     initGridData();
     auto grid_v = rd->CreateRenderObject(gridVertices, 204);
-    lmv::FrameObject gridObj;
+    lmcore::FrameObject gridObj;
     gridObj.h = grid_v;
     gridObj.p = "grid";
     gridObj.line = true;
 
-    auto rootpath = lmv::getExeFolderPath();
-    //auto plan_0_path = rootpath + std::string("/../data/plan/l_singleStudio01.json");
-    auto plan_0_path = rootpath + std::string("/../data/plan/l_twoBedroomApartment03.json");
-    auto fp_0 = lmv::load_floor_plan_from_json(plan_0_path);
+    auto rootpath = lmcore::getExeFolderPath();
+    auto plan_0_path = rootpath + std::string("/../data/plan/l_singleStudio01.json");
+    //auto plan_0_path = rootpath + std::string("/../data/plan/l_twoBedroomApartment03.json");
+    //auto plan_0_path = rootpath + std::string("/../data/plan/room_box.json");
+    auto fp_0 = lmcore::load_floor_plan_from_json(plan_0_path);
     std::vector<lmcore::PosColorVertex> fpline_vertices;
     std::vector<int> fpline_indices;
-    lmv::FloorPlanWallMerger merger(fp_0);
+    lmcore::FloorPlanWallMerger merger(fp_0);
     fp_0 = merger.Merge();
-    //lmv::create_vertices_indices_of_room_geometry(fp_0,fpline_vertices,fpline_indices);
-    lmv::create_vertices_indices_from_merger(merger,fpline_vertices);
+    //lmcore::create_vertices_indices_of_room_geometry(fp_0,fpline_vertices,fpline_indices);
+    lmcore::create_vertices_indices_from_merger(merger,fpline_vertices);
 
     std::vector<lmcore::PosColorVertex> temp_walls;
-    for(auto w : fp_0.walls)
+    for(auto & w : fp_0.walls)
     {
-        // for(auto v : w.data.baseForm)
-        // {
-        //     temp_walls.push_back(v);
-        // }
-
         for(auto & f : w.data.faces)
         {
             for(auto v : f.shape)
@@ -159,14 +158,22 @@ int main()
         }
     }
 
+    for(auto & f : fp_0.floors)
+    {
+        for(auto & ff : f.data.baseForm)
+        {
+            temp_walls.push_back(ff);
+        }
+    }
+
     auto wall_v = rd->CreateRenderObject(temp_walls.data(),temp_walls.size());
-    lmv::FrameObject wallObj;
+    lmcore::FrameObject wallObj;
     wallObj.h = wall_v;
     wallObj.p = "basic"; 
     wallObj.line = false;
 
     auto wall_line_v = rd->CreateRenderObject(fpline_vertices.data(),fpline_vertices.size());
-    lmv::FrameObject walllineObj;
+    lmcore::FrameObject walllineObj;
     walllineObj.h = wall_line_v;
     walllineObj.p = "grid"; 
     walllineObj.line = true;

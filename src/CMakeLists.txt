@@ -5,6 +5,7 @@ add_executable(core
         ${CMAKE_SOURCE_DIR}/src/test/bgfx_test.cpp
         ${CMAKE_SOURCE_DIR}/src/system/files.cpp
         ${CMAKE_SOURCE_DIR}/src/core/renderer.cpp
+        ${CMAKE_SOURCE_DIR}/src/utils/planLoader.cpp
     #PUBLIC       
 )
 
@@ -14,6 +15,7 @@ target_include_directories(core
         ${CMAKE_SOURCE_DIR}/third_party/bgfx/bx/include
         ${CMAKE_SOURCE_DIR}/third_party/bgfx/bgfx/include
         ${CMAKE_SOURCE_DIR}/third_party/bgfx/bimg/include
+        ${CMAKE_SOURCE_DIR}/third_party/bullet3/src
         ${CMAKE_SOURCE_DIR}/third_party/glfw/include
         ${CMAKE_SOURCE_DIR}/third_party/nlohmann/include
         ${CMAKE_SOURCE_DIR}/third_party/eigen
@@ -29,6 +31,9 @@ target_link_libraries(core
         bx
         bimg
         glfw
+        BulletDynamics
+        BulletCollision
+        LinearMath
 )
 
 set(SHADERC_EXECUTABLE 

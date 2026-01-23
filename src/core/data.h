@@ -79,6 +79,7 @@ namespace lmcore
         ERoomType type;
         std::vector<FPGeometry> geometries;
         std::vector<uint32_t> wallIndices;
+        uint32_t floorIndices;
     };
 
     struct FPConnection
@@ -127,6 +128,28 @@ namespace lmcore
         FPSolidifiedWallGeoData data;
     };
 
+    struct FPFloorFace
+    {
+        std::vector<PosColorVertex> shape;
+        lmcore::Vec3f normal;
+    };
+
+    struct FPSolidifiedFloorGeoData
+    {
+        std::vector<PosColorVertex> baseForm;
+        std::vector<FPFloorFace> faces;
+        std::vector<PosColorVertex> bands;
+    };
+
+    struct FPFloor
+    {
+        std::vector<FPPoint> points;
+
+        float override_thickness = 0.f;
+
+        FPSolidifiedFloorGeoData data;
+    };
+
     struct FPData
     {
         float global_wall_height = 3.f;
@@ -144,6 +167,7 @@ namespace lmcore
         std::vector<FPRoom> rooms;
         std::vector<FPOpening> openings;
         std::vector<FPWallSegment> walls;
+        std::vector<FPFloor> floors;
         FPData data;
     };
 

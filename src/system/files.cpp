@@ -9,7 +9,7 @@
 
 #endif
 
-namespace lmv{
+namespace lmcore{
 std::string getExePath() {
 #ifdef PLATFORM_WINDOWS
     return std::string();

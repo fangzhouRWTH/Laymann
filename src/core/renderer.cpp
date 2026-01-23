@@ -1,7 +1,7 @@
 #include "core/renderer.h"
 #include "renderer.h"
 
-namespace lmv
+namespace lmcore
 {
 
 static bgfx::ShaderHandle loadShaderBin(const char* _path)

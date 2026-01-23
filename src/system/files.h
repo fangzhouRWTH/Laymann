@@ -1,6 +1,6 @@
 #include <string>
 
-namespace lmv
+namespace lmcore
 {
     std::string getExePath();
     std::string getExeFolderPath();
