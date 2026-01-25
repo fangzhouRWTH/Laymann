@@ -37,16 +37,16 @@ void initGridData()
     for(int i = 0; i < 51; i++)
     {
         float start = -25.f;
-        gridVertices[i*2] = {start+i,-100.f,0.0, 0.0,0.0,1.0, r,g,b,a};
-        gridVertices[i*2+1] = {start+i,100.f,0.0, 0.0,0.0,1.0, r,g,b,a};
+        gridVertices[i*2] = {start+i,-100.f,0.01, 0.0,0.0,1.0, r,g,b,a};
+        gridVertices[i*2+1] = {start+i,100.f,0.01, 0.0,0.0,1.0, r,g,b,a};
     }
 
     for(int i = 0; i < 51; i++)
     {
         float start = -25.f;
         int index_offset = 102; 
-        gridVertices[index_offset + i*2] = {-100.f, start+i,0.0, 0.0,0.0,1.0, r,g,b,a};
-        gridVertices[index_offset + i*2 + 1] = {100.f, start+i,0.0, 0.0,0.0,1.0, r,g,b,a};
+        gridVertices[index_offset + i*2] = {-100.f, start+i,0.01, 0.0,0.0,1.0, r,g,b,a};
+        gridVertices[index_offset + i*2 + 1] = {100.f, start+i,0.01, 0.0,0.0,1.0, r,g,b,a};
     }
 
     for(int i = 0; i < 204; i++)
@@ -130,8 +130,8 @@ int main()
     gridObj.line = true;
 
     auto rootpath = lmcore::getExeFolderPath();
-    auto plan_0_path = rootpath + std::string("/../data/plan/l_singleStudio01.json");
-    //auto plan_0_path = rootpath + std::string("/../data/plan/l_twoBedroomApartment03.json");
+    //auto plan_0_path = rootpath + std::string("/../data/plan/l_singleStudio01.json");
+    auto plan_0_path = rootpath + std::string("/../data/plan/l_twoBedroomApartment03.json");
     //auto plan_0_path = rootpath + std::string("/../data/plan/room_box.json");
     auto fp_0 = lmcore::load_floor_plan_from_json(plan_0_path);
     std::vector<lmcore::PosColorVertex> fpline_vertices;

@@ -65,20 +65,21 @@ namespace lmcore
 
     void FloorPlanWallMerger::solidifyFloors()
     {
+        // -------- helpers --------
         auto signedArea = [](const std::vector<FPPoint> &points) -> float
         {
-            auto n = points.size();
+            const size_t n = points.size();
             if (n < 3)
                 return 0.f;
-            float area = 0.f;
-            for (auto i = 0; i < n; i++)
+
+            double area = 0.0;
+            for (size_t i = 0; i < n; ++i)
             {
-                auto &p0 = points[i].value;
-                auto j = (i + 1) % n;
-                auto &p1 = points[j].value;
-                area += p0.x() * p1.y() - p1.x() * p0.y();
+                const auto &p0 = points[i].value;
+                const auto &p1 = points[(i + 1) % n].value;
+                area += double(p0.x()) * double(p1.y()) - double(p1.x()) * double(p0.y());
             }
-            return area * 0.5f;
+            return float(area * 0.5);
         };
 
         auto cross3x2 = [](const Vec3f &a, const Vec3f &b, const Vec3f &c) -> float
@@ -86,106 +87,138 @@ namespace lmcore
             return (b.x() - a.x()) * (c.y() - a.y()) - (b.y() - a.y()) * (c.x() - a.x());
         };
 
-        auto isCCW = [cross3x2](const Vec3f &a, const Vec3f &b, const Vec3f &c) -> bool
-        {
-            return cross3x2(a, b, c) > 0.f;
-        };
-
+        // 更稳的 pointInTriangle：允许“几乎在边上”的点通过 eps 处理
         auto pointInTriangle = [cross3x2](const Vec3f &a, const Vec3f &b, const Vec3f &c, const Vec3f &p) -> bool
         {
+            constexpr float eps = 1e-6f;
+
             float f1 = cross3x2(a, b, p);
             float f2 = cross3x2(b, c, p);
             float f3 = cross3x2(c, a, p);
 
-            bool hasNeg = (f1 < 0) || (f2 < 0) || (f3 < 0);
-            bool hasPos = (f1 > 0) || (f2 > 0) || (f3 > 0);
+            bool hasNeg = (f1 < -eps) || (f2 < -eps) || (f3 < -eps);
+            bool hasPos = (f1 > eps) || (f2 > eps) || (f3 > eps);
 
+            // 只有同时存在明显正/负才算在外面；边界/近边界算 inside
             return !(hasNeg && hasPos);
         };
 
-        auto isEar = [cross3x2, pointInTriangle](const std::vector<FPPoint> &points, int i) -> bool
+        auto isEar = [cross3x2, pointInTriangle](const std::vector<FPPoint> &workPoints, size_t i) -> bool
         {
-            auto n = points.size();
+            constexpr float eps = 1e-6f;
+
+            const size_t n = workPoints.size();
             if (n < 3)
                 return false;
 
-            auto prev = (i - 1 + n) % n;
-            auto next = (i + 1) % n;
+            const size_t prev = (i + n - 1) % n;
+            const size_t next = (i + 1) % n;
 
-            if (cross3x2(points[prev].value, points[i].value, points[next].value) <= 0)
-            {
+            const Vec3f &A = workPoints[prev].value;
+            const Vec3f &B = workPoints[i].value;
+            const Vec3f &C = workPoints[next].value;
+
+            // 只允许“足够凸”的顶点当耳朵（共线/近共线不当耳朵）
+            if (cross3x2(A, B, C) <= eps)
                 return false;
-            }
 
-            for (int k = 0; k < n; ++k)
+            // 三角形内部不能包含任何其他顶点
+            for (size_t k = 0; k < n; ++k)
             {
                 if (k == prev || k == i || k == next)
                     continue;
-                if (pointInTriangle(points[prev].value, points[i].value, points[next].value, points[k].value))
-                {
+                if (pointInTriangle(A, B, C, workPoints[k].value))
                     return false;
-                }
             }
             return true;
         };
 
+        // -------- main --------
         for (auto &floor : mPlan.floors)
         {
-            auto &points = floor.points;
-            assert(points.size() >= 3);
-            if (signedArea(points) < 0.f)
+            auto &origPoints = floor.points; // 原始点集：最终取点必须用它
+            assert(origPoints.size() >= 3);
+
+            // 如果原始是 CW，则生成一个 CCW 的工作副本用于 ear clipping
+            std::vector<FPPoint> workPoints = origPoints;
+            if (signedArea(workPoints) < 0.f)
+                std::reverse(workPoints.begin(), workPoints.end());
+
+            size_t n = workPoints.size();
+
+            // indices 存“原始点集编号”
+            std::vector<uint32_t> indices(n);
             {
-                std::reverse(points.begin(), points.end());
+                // 如果我们 reverse 了 workPoints，那么 indices 也要对应 reverse 后的“原始编号”
+                // workPoints[i] 对应 origPoints[?]
+                // 简单办法：先按 workPoints 的来源构造映射
+                // 由于 workPoints 来自 origPoints 或 reverse(origPoints)，这里直接推：
+                if (signedArea(origPoints) < 0.f)
+                {
+                    // workPoints = reverse(origPoints)
+                    // workPoints[i] == origPoints[n-1-i]
+                    for (size_t i = 0; i < n; ++i)
+                        indices[i] = uint32_t(n - 1 - i);
+                }
+                else
+                {
+                    // workPoints = origPoints
+                    for (size_t i = 0; i < n; ++i)
+                        indices[i] = uint32_t(i);
+                }
             }
 
-            auto n = points.size();
-            std::vector<uint32_t> indices(n);
-            for (uint32_t i = 0; i < n; i++)
-                indices[i] = i;
-
             std::vector<uint32_t> triangles;
+            triangles.reserve((n - 2) * 3);
 
+            // 随机颜色
             std::random_device rd;
             std::mt19937 gen(rd());
-            std::uniform_real_distribution<float> dis(0.0, 1.0);
+            std::uniform_real_distribution<float> dis(0.0f, 1.0f);
+            float r = dis(gen), g = dis(gen), b = dis(gen);
 
-            float r = dis(gen);
-            float g = dis(gen);
-            float b = dis(gen);
-            float a = 1.f;
-
-            // 耳切主循环
+            // 耳切主循环：删 workPoints / indices，但绝不动 origPoints
+            size_t guard = 0;
             while (n > 3)
             {
                 bool foundEar = false;
-                for (int i = 0; i < n; ++i)
+
+                for (size_t i = 0; i < n; ++i)
                 {
-                    if (isEar(points, i))
+                    if (isEar(workPoints, i))
                     {
-                        // 添加三角形：prev, i, next
-                        int prev = (i - 1 + n) % n;
-                        int next = (i + 1) % n;
+                        size_t prev = (i + n - 1) % n;
+                        size_t next = (i + 1) % n;
+
+                        // 记录三角形（原始点集编号）
                         triangles.push_back(indices[prev]);
                         triangles.push_back(indices[i]);
                         triangles.push_back(indices[next]);
 
-                        // 移除耳朵顶点 i
-                        points.erase(points.begin() + i);
-                        indices.erase(indices.begin() + i);
+                        // 删掉耳朵顶点
+                        workPoints.erase(workPoints.begin() + (ptrdiff_t)i);
+                        indices.erase(indices.begin() + (ptrdiff_t)i);
                         --n;
+
                         foundEar = true;
-                        break; // 重新从头找（安全起见）
+                        break;
                     }
                 }
+
                 if (!foundEar)
                 {
-                    // 理论上不应发生（除非自交或退化）
-                    std::cerr << "Error: No ear found! Polygon may be self-intersecting.\n";
+                    std::cerr << "Error: No ear found! Polygon may be self-intersecting or degenerate.\n";
+                    break;
+                }
+
+                // 防止极端情况下死循环（例如退化数据）
+                if (++guard > 100000)
+                {
+                    std::cerr << "Error: Ear clipping guard triggered.\n";
                     break;
                 }
             }
 
-            // 最后剩下 3 个点，构成最后一个三角形
             if (n == 3)
             {
                 triangles.push_back(indices[0]);
@@ -193,12 +226,15 @@ namespace lmcore
                 triangles.push_back(indices[2]);
             }
 
-            auto size = triangles.size();
-            floor.data.baseForm.resize(size);
-            for (auto i = 0; i < size; i++)
+            // 输出：用 origPoints 按 triangles 索引取点（不会越界）
+            const size_t triCount = triangles.size();
+            floor.data.baseForm.resize(triCount);
+
+            for (size_t i = 0; i < triCount; ++i)
             {
-                auto &p = floor.points[triangles[i]].value;
-                floor.data.baseForm[size-i-1] = PosColorVertex{.x = p.x(), .y = p.y(), .z = p.z(), .r = r, .g = g, .b = b};
+                const auto &p = origPoints[triangles[i]].value;
+                floor.data.baseForm[triCount - i - 1] = PosColorVertex{
+                    .x = p.x(), .y = p.y(), .z = p.z(), .r = r, .g = g, .b = b};
             }
         }
     }
@@ -574,7 +610,7 @@ namespace lmcore
             auto &room_cache = mRoomSegmentsCache[i];
             auto &room = mPlan.rooms[i];
 
-            mPlan.floors[i]=(FPFloor{.points = room.geometries[0].points});
+            mPlan.floors[i] = (FPFloor{.points = room.geometries[0].points});
             room.floorIndices = i;
 
             for (auto rseg : room_cache)
