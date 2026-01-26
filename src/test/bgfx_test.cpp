@@ -147,23 +147,23 @@ int main()
     std::vector<lmcore::FrameObject> fObjs;
     std::vector<lmcore::PhysicalObjectHandle> pHandles;
 
-    uint32_t x = 10u;
-    uint32_t y = 10u;
-    uint32_t z = 5u;
+    uint32_t x = 1u;
+    uint32_t y = 1u;
+    uint32_t z = 10u;
 
-    float distance = 0.6f;
+    float distance = 0.8f;
 
     for (auto _x = 0; _x < x; _x++)
     {
         for (auto _y = 0; _y < y; _y++)
         {
-            for (auto _z = 0; _z < z; z++)
+            for (auto _z = 0; _z < z; _z++)
             {
                 lmcore::Iso3f iso = lmcore::Iso3f::Identity();
                 iso.translate(lmcore::Vec3f{
                         (_x - x * 0.5f) * distance,
                         (_y - y * 0.5f) * distance, 
-                        (_z - z * 0.5f) * distance});
+                        (_z - z * 0.5f) * distance + 20.f});
                 lmcore::FrameObject cubeObj;
                 cubeObj.h = cube;
                 cubeObj.p = "basic";
@@ -176,26 +176,32 @@ int main()
         }
     }
 
-    lmcore::Iso3f iso = lmcore::Iso3f::Identity();
-    iso.translate(lmcore::Vec3f{0.f, 0.f, 10.f});
-    lmcore::FrameObject cubeObj;
-    cubeObj.h = cube;
-    cubeObj.p = "basic";
-    cubeObj.line = false;
-    cubeObj.transform = iso;
-    auto phcube = phy->RegisterPhysicalObject({.xyz = {cubescale * 0.5f, cubescale * 0.5f, cubescale * 0.5f}}, iso, false);
+    // lmcore::Iso3f iso = lmcore::Iso3f::Identity();
+    // iso.translate(lmcore::Vec3f{0.f, 0.f, 10.f});
+    // lmcore::FrameObject cubeObj;
+    // cubeObj.h = cube;
+    // cubeObj.p = "basic";
+    // cubeObj.line = false;
+    // cubeObj.transform = iso;
+    // auto phcube = phy->RegisterPhysicalObject({.xyz = {cubescale * 0.5f, cubescale * 0.5f, cubescale * 0.5f}}, iso, false);
 
     while (!rd->ShouldClose())
     {
-        phy->Update(0.16f);
+        phy->Update(0.002f);
 
         rd->PushFrameObject(gridObj);
         rd->PushFrameObject(walllineObj);
         rd->PushFrameObject(wallObj);
 
-        auto cubestate = phy->GetPhysicalState(phcube);
-        cubeObj.transform = cubestate.pose;
-        rd->PushFrameObject(cubeObj);
+        auto size = fObjs.size();
+        for(auto i = 0; i < size; i++)
+        {
+            auto phcube = pHandles[i];
+            auto cubestate = phy->GetPhysicalState(phcube);
+            auto cubeObj = fObjs[i];
+            cubeObj.transform = cubestate.pose;
+            rd->PushFrameObject(cubeObj);
+        }
 
         rd->PreUpdate();
 
