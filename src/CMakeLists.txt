@@ -6,6 +6,8 @@ add_executable(core
         ${CMAKE_SOURCE_DIR}/src/system/files.cpp
         ${CMAKE_SOURCE_DIR}/src/core/renderer.cpp
         ${CMAKE_SOURCE_DIR}/src/utils/planLoader.cpp
+        ${CMAKE_SOURCE_DIR}/src/core/simulator.cpp
+        ${CMAKE_SOURCE_DIR}/src/core/geometry.cpp
     #PUBLIC       
 )
 

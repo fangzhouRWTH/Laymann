@@ -124,6 +124,7 @@ class Renderer::Impl{
                 .add(bgfx::Attrib::Color0,   4, bgfx::AttribType::Float, true)
                 .end();
 
+            //TODO move out timer
             mLastTime = glfwGetTime();
 
             initDefaultUniforms();
@@ -357,8 +358,10 @@ class Renderer::Impl{
                     );
 
                 auto b = mRenderObjects.robjs[o.h];
+                Mat4f mtx = o.transform.matrix();
                 auto p = mPrograms.find(o.p);
                 bgfx::setVertexBuffer(0,b.vbh);
+                bgfx::setTransform(mtx.data());
                 bgfx::submit(mViewId,p->second.pgh);
             }
         }

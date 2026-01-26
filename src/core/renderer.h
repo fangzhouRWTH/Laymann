@@ -93,6 +93,7 @@ struct FrameObject
     RenderObjectHandle h;
     std::string p;
     bool line = false;
+    Iso3f transform;
 };
 
 class Renderer

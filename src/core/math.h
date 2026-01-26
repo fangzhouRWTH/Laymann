@@ -9,6 +9,9 @@ namespace lmcore
     typedef Eigen::Matrix3f Mat3f;
     typedef Eigen::Matrix4f Mat4f;
 
+    typedef Eigen::Isometry3f Iso3f;
+    typedef Eigen::Quaternionf Quaternion;
+
     typedef Eigen::Hyperplane<float,2> Line;
     typedef Eigen::ParametrizedLine<float,2> PLine;
 }

@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <array>
+#include <cstdint>
 
 #include "core/math.h"
 
@@ -177,9 +178,16 @@ namespace lmcore
         //atm we dont use index draw
     };
 
+    struct PhysicalObject
+    {
+        Iso3f transform;
+        std::vector<BBox> bboxes;
+        float mass = 1.f;
+    };
+
     struct StaticStructure
     {
-        RenderObject rObj;
+        //RenderObject rObj;
         Mat4f transform;
         std::vector<BBox> bboxes;
     };
