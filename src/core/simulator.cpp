@@ -1,6 +1,7 @@
 #include "simulator.h"
 #include <btBulletDynamicsCommon.h>
 #include <iostream>
+#include <math.h>
 
 namespace lmcore
 {
@@ -65,14 +66,16 @@ namespace lmcore
             mBroadphase = std::make_unique<btDbvtBroadphase>();
             mSolver = std::make_unique<btSequentialImpulseConstraintSolver>();
             mWorld = std::make_unique<btDiscreteDynamicsWorld>(mDispatcher.get(), mBroadphase.get(), mSolver.get(), mCollisionConfig.get());
-
+            mWorld->getSolverInfo().m_splitImpulse = true;
+            mWorld->getSolverInfo().m_numIterations = 15;
+            mWorld->getSolverInfo().m_solverMode |= SOLVER_USE_2_FRICTION_DIRECTIONS;
             mWorld->setGravity(btVector3(0.f, 0.f, -0.981f));
         }
 
         void Update(float deltaTime)
         {
             btScalar dt = deltaTime;
-            mWorld->stepSimulation(dt, mSubSteps);
+            mWorld->stepSimulation(dt, mSubSteps, mFixedTimeStep);
 
             auto size = mPool.aliveObjs.size();
             for (auto i = 0; i < size; i++)
@@ -107,6 +110,7 @@ namespace lmcore
         {
             RegisteredObject obj;
             obj.collisionShape = std::make_unique<btStaticPlaneShape>(btVector3(normal.x(), normal.y(), normal.z()), 0.f);
+            obj.collisionShape->setMargin(0.05f);
             btTransform t;
             t.setIdentity();
             t.setOrigin(btVector3(location.x(), location.y(), location.z()));
@@ -121,7 +125,7 @@ namespace lmcore
             return h;
         }
 
-        PhysicalObjectHandle RegisterPhysicalObject(BBox boundingBox, Iso3f transform, bool isStatic)
+        PhysicalObjectHandle RegisterPhysicalObject(BBox boundingBox, Iso3f transform, float mass)
         {
             RegisteredObject obj;
             obj.collisionShape = std::make_shared<btBoxShape>(convert(boundingBox.xyz));
@@ -132,14 +136,18 @@ namespace lmcore
             t.setIdentity();
             t.setOrigin(convert(trans));
             t.setRotation(convert(qua));
-            btScalar mass = 1.f;
+            btScalar _mass = mass;
             btVector3 inertia(0.f, 0.f, 0.f);
-            obj.collisionShape->calculateLocalInertia(mass, inertia);
+            obj.collisionShape->calculateLocalInertia(_mass, inertia);
             obj.motionState = std::make_shared<btDefaultMotionState>(t);
             btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, obj.motionState.get(), obj.collisionShape.get(), inertia);
             obj.body = std::make_shared<btRigidBody>(rbInfo);
 
             obj.body->setDamping(0.05f, 0.85f);
+            //obj.body->setCcdMotionThreshold(1e-7f);
+            //obj.body->setCcdSweptSphereRadius(0.5f * boundingBox.xyz.x());
+            obj.body->setFriction(0.2f);
+            obj.body->setRestitution(0.05f);
             mWorld->addRigidBody(obj.body.get());
 
             auto h = mPool.add(obj);
@@ -148,9 +156,9 @@ namespace lmcore
 
         PhysicalState GetPhysicalState(PhysicalObjectHandle handle)
         {
-            if(handle >= mPool.aliveObjs.size()||!mPool.aliveObjs[handle])
+            if (handle >= mPool.aliveObjs.size() || !mPool.aliveObjs[handle])
                 return {};
-            
+
             return mPool.registered[handle].state;
         }
 
@@ -161,7 +169,8 @@ namespace lmcore
         std::unique_ptr<btSequentialImpulseConstraintSolver> mSolver;
         std::unique_ptr<btDiscreteDynamicsWorld> mWorld;
 
-        uint32_t mSubSteps = 10u;
+        uint32_t mSubSteps = 4u;
+        float mFixedTimeStep = 0.016f;
 
         ObjectPool mPool;
     };
@@ -188,9 +197,9 @@ namespace lmcore
     {
         return impl->RegisterPlan(normal, location);
     }
-    PhysicalObjectHandle Simulator::RegisterPhysicalObject(BBox boundingBox, Iso3f transform, bool isStatic)
+    PhysicalObjectHandle Simulator::RegisterPhysicalObject(BBox boundingBox, Iso3f transform, float mass)
     {
-        return impl->RegisterPhysicalObject(boundingBox, transform, isStatic);
+        return impl->RegisterPhysicalObject(boundingBox, transform, mass);
     }
     PhysicalState Simulator::GetPhysicalState(PhysicalObjectHandle handle)
     {

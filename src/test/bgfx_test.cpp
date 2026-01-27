@@ -19,6 +19,7 @@
 #include "core/renderer.h"
 #include "core/simulator.h"
 #include "core/geometry.h"
+#include "core/entity.h"
 
 #define GLFW_EXPOSE_NATIVE_X11
 #include <GLFW/glfw3native.h>
@@ -63,6 +64,8 @@ int main()
     auto rd = std::make_shared<lmcore::Renderer>(wd);
     rd->Init();
     auto phy = std::make_shared<lmcore::Simulator>();
+
+    auto entities = std::make_shared<lmcore::EntityManager>();
 
     assert(rd->CreateProgram("grid", "grid"));
     assert(rd->CreateProgram("basic", "basic"));
@@ -113,12 +116,18 @@ int main()
     wallObj.line = false;
     wallObj.transform = idmtx;
 
+    lmcore::RenderComponent rc_wall = {.handle = wall_v, .program = "basic", .line = false};
+    entities->RegisterEntity().add(rc_wall);
+
     auto wall_line_v = rd->CreateRenderObject(fpline_vertices.data(), fpline_vertices.size());
     lmcore::FrameObject walllineObj;
     walllineObj.h = wall_line_v;
     walllineObj.p = "grid";
     walllineObj.line = true;
     walllineObj.transform = idmtx;
+
+    lmcore::RenderComponent rc_wall_line = {.handle = wall_line_v, .program = "grid", .line = true};
+    entities->RegisterEntity().add(rc_wall_line);
 
     initGridData();
     auto grid_v = rd->CreateRenderObject(gridVertices, 204);
@@ -128,9 +137,12 @@ int main()
     gridObj.line = true;
     gridObj.transform = idmtx;
 
+    lmcore::RenderComponent rc_grid = {.handle = grid_v, .program = "grid", .line = true};
+    entities->RegisterEntity().add(rc_grid);
+
     std::vector<lmcore::PosColorVertex> cubev;
     cubev.reserve(36u);
-    float cubescale = 0.2f;
+    float cubescale = 0.8f;
     for (auto p : lmcore::geo_default_cube)
     {
         p.x *= (cubescale * 0.5f);
@@ -140,18 +152,21 @@ int main()
     }
 
     phy->Init();
-    phy->RegisterPlan({0.f, 0.f, 1.f}, {0.f, 0.f, 0.f});
+
+    //phy->RegisterPlan({0.f, 0.f, 1.f}, {0.f, 0.f, 0.f});
+    lmcore::Iso3f fiso = lmcore::Iso3f::Identity();
+    fiso.translate(lmcore::Vec3f{0.f,0.f,-1.f});
+    phy->RegisterPhysicalObject({.xyz = {100.f, 100.f, 1.f}}, fiso, 0.f);
 
     auto cube = rd->CreateRenderObject(cubev.data(), 36u);
-
     std::vector<lmcore::FrameObject> fObjs;
     std::vector<lmcore::PhysicalObjectHandle> pHandles;
 
-    uint32_t x = 1u;
-    uint32_t y = 1u;
-    uint32_t z = 10u;
+    uint32_t x = 4u;
+    uint32_t y = 4u;
+    uint32_t z = 6u;
 
-    float distance = 0.8f;
+    float distance = 1.2f;
 
     for (auto _x = 0; _x < x; _x++)
     {
@@ -161,40 +176,34 @@ int main()
             {
                 lmcore::Iso3f iso = lmcore::Iso3f::Identity();
                 iso.translate(lmcore::Vec3f{
-                        (_x - x * 0.5f) * distance,
-                        (_y - y * 0.5f) * distance, 
-                        (_z - z * 0.5f) * distance + 20.f});
+                    (_x - x * 0.5f) * distance,
+                    (_y - y * 0.5f) * distance,
+                    (_z - z * 0.5f) * distance + 20.f});
                 lmcore::FrameObject cubeObj;
                 cubeObj.h = cube;
                 cubeObj.p = "basic";
                 cubeObj.line = false;
                 cubeObj.transform = iso;
-                auto phcube = phy->RegisterPhysicalObject({.xyz = {cubescale * 0.5f, cubescale * 0.5f, cubescale * 0.5f}}, iso, false);
+                auto phcube = phy->RegisterPhysicalObject({.xyz = {cubescale * 0.5f, cubescale * 0.5f, cubescale * 0.5f}}, iso, 1.f);
                 fObjs.push_back(cubeObj);
                 pHandles.push_back(phcube);
+                lmcore::RenderComponent rc = {.handle = cube, .program = "basic", .line = false};
+                lmcore::PhysicalComponent pc = {.handle = phcube};
+                entities->RegisterEntity().add(rc).add(pc).end();
             }
         }
     }
 
-    // lmcore::Iso3f iso = lmcore::Iso3f::Identity();
-    // iso.translate(lmcore::Vec3f{0.f, 0.f, 10.f});
-    // lmcore::FrameObject cubeObj;
-    // cubeObj.h = cube;
-    // cubeObj.p = "basic";
-    // cubeObj.line = false;
-    // cubeObj.transform = iso;
-    // auto phcube = phy->RegisterPhysicalObject({.xyz = {cubescale * 0.5f, cubescale * 0.5f, cubescale * 0.5f}}, iso, false);
-
     while (!rd->ShouldClose())
     {
-        phy->Update(0.002f);
+        phy->Update(0.016f);
 
         rd->PushFrameObject(gridObj);
         rd->PushFrameObject(walllineObj);
         rd->PushFrameObject(wallObj);
 
         auto size = fObjs.size();
-        for(auto i = 0; i < size; i++)
+        for (auto i = 0; i < size; i++)
         {
             auto phcube = pHandles[i];
             auto cubestate = phy->GetPhysicalState(phcube);

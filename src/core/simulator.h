@@ -23,7 +23,7 @@ namespace lmcore
         void Destroy();
 
         PhysicalObjectHandle RegisterPlan(Vec3f normal, Vec3f location);
-        PhysicalObjectHandle RegisterPhysicalObject(BBox boundingBox, Iso3f transform, bool isStatic);
+        PhysicalObjectHandle RegisterPhysicalObject(BBox boundingBox, Iso3f transform, float mass);
         PhysicalState GetPhysicalState(PhysicalObjectHandle handle);
 
     private:
