@@ -343,6 +343,53 @@ namespace lmcore
                 pushsquare(vec, p2_, p2, p3_, p3);
             };
 
+            auto pushcollision = [](std::vector<FPWallCollision> &collisions, Vec3f po, Vec3f ppx, Vec3f ppy, Vec3f ppz, Vec3f op)
+            {
+                Vec3f ax = ppx - po;
+                Vec3f ay = ppy - po;
+                Vec3f az = ppz - po;
+
+                float lx = ax.norm() / 2.f;
+                float ly = ay.norm() / 2.f;
+                float lz = az.norm() / 2.f;
+
+                auto pos = (ax + ay + az) / 2.f + po;
+                // auto pos = ()
+                ax.normalize();
+                ay.normalize();
+                az.normalize();
+
+                float v = ax.cross(ay).dot(az);
+                if (abs(abs(v) - 1.f) > _eps_)
+                    return;
+
+                if (v < 0.f)
+                {
+                    auto temp = ax;
+                    ax = ay;
+                    ay = temp;
+
+                    auto templ = lx;
+                    lx = ly;
+                    ly = templ;
+                }
+
+                FPWallCollision wc;
+                wc.bbox.xyz = Vec3f{lx, ly, lz};
+                Mat3f rotation;
+                rotation.col(0) = ax;
+                rotation.col(1) = ay;
+                rotation.col(2) = az;
+
+                Iso3f iso = Iso3f::Identity();
+                // iso.translate(Vec3f(0.f,0.f,3.f));
+                iso.rotate(rotation);
+                iso.translate(pos);
+                wc.pose = iso;
+
+                collisions.push_back(wc);
+            };
+
             int size = wall_points.size();
             for (int i = 0; i < size - 1; i++)
             {
@@ -407,6 +454,20 @@ namespace lmcore
 
                         dir.normalize();
                         dir = dir * mPlan.data.global_wall_thickness / 2.f;
+
+                        {
+                            Vec3f _po = p0 + dir;
+                            _po.z() += op.high;
+                            Vec3f _px = p0 - dir;
+                            _px.z() += op.high;
+                            Vec3f _py = p1 + dir;
+                            _py.z() += op.high;
+                            Vec3f _pz = p0 + dir;
+                            _pz.z() += mPlan.data.global_wall_height;
+                            Vec3f _op = p1 - dir;
+                            _op.z() += mPlan.data.global_wall_height;
+                            pushcollision(wall.collisions, _po, _px, _py, _pz, _op);
+                        }
 
                         v0_p = posadd(v0, dir);
                         v1_p = posadd(v1, dir);
@@ -473,6 +534,17 @@ namespace lmcore
 
                             dir.normalize();
                             dir = dir * mPlan.data.global_wall_thickness / 2.f;
+
+                            {
+                                Vec3f _po = p0 + dir;
+                                Vec3f _px = p0 - dir;
+                                Vec3f _py = p1 + dir;
+                                Vec3f _pz = _po;
+                                _pz.z() += op.low;
+                                Vec3f _op = p1 - dir;
+                                _op.z() += op.low;
+                                pushcollision(wall.collisions, _po, _px, _py, _pz, _op);
+                            }
 
                             v0_p = posadd(v0, dir);
                             v1_p = posadd(v1, dir);
@@ -542,6 +614,17 @@ namespace lmcore
 
                 dir.normalize();
                 dir = dir * mPlan.data.global_floor_thickness / 2.f;
+
+                {
+                    Vec3f _po = p0 + dir;
+                    Vec3f _px = p0 - dir;
+                    Vec3f _py = p1 + dir;
+                    Vec3f _pz = _po;
+                    _pz.z() += mPlan.data.global_wall_height;
+                    Vec3f _op = p1 - dir;
+                    _op.z() += mPlan.data.global_wall_height;
+                    pushcollision(wall.collisions, _po, _px, _py, _pz, _op);
+                }
 
                 v0_p = posadd(v0, dir);
                 v1_p = posadd(v1, dir);

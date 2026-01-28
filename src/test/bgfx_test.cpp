@@ -58,22 +58,27 @@ void initGridData()
 
 int main()
 {
-    // btDefaultCollisionConfiguration * collisionConfiguration = new btDefaultCollisionConfiguration();
     auto wd = std::make_shared<lmcore::Window>(1920, 1080);
     wd->Init();
     auto rd = std::make_shared<lmcore::Renderer>(wd);
     rd->Init();
     auto phy = std::make_shared<lmcore::Simulator>();
+    phy->Init();
 
     auto entities = std::make_shared<lmcore::EntityManager>();
+    entities->AddPhysicalEngine(phy);
+    entities->AddRenderEngine(rd);
+    auto systems = std::make_shared<lmcore::SystemsManager>();
+    auto pos_update_sys = std::make_shared<lmcore::PositionUpdater>();
+    systems->add(pos_update_sys);
 
     assert(rd->CreateProgram("grid", "grid"));
     assert(rd->CreateProgram("basic", "basic"));
 
     auto rootpath = lmcore::getExeFolderPath();
     // auto plan_0_path = rootpath + std::string("/../data/plan/l_singleStudio01.json");
-    auto plan_0_path = rootpath + std::string("/../data/plan/l_twoBedroomApartment03.json");
-    // auto plan_0_path = rootpath + std::string("/../data/plan/room_box.json");
+    //auto plan_0_path = rootpath + std::string("/../data/plan/l_twoBedroomApartment03.json");
+    auto plan_0_path = rootpath + std::string("/../data/plan/room_box.json");
     auto fp_0 = lmcore::load_floor_plan_from_json(plan_0_path);
     std::vector<lmcore::PosColorVertex> fpline_vertices;
     std::vector<int> fpline_indices;
@@ -83,6 +88,8 @@ int main()
     lmcore::create_vertices_indices_from_merger(merger, fpline_vertices);
 
     std::vector<lmcore::PosColorVertex> temp_walls;
+    std::vector<std::vector<lmcore::PosColorVertex>> vs;
+    bool has = false;
     for (auto &w : fp_0.walls)
     {
         for (auto &f : w.data.faces)
@@ -97,6 +104,74 @@ int main()
         {
             temp_walls.push_back(v);
         }
+
+        for (auto c : w.collisions)
+        {
+            // if(has)
+            //     break;
+            // has =true;
+            auto ph = phy->RegisterPhysicalObject(c.bbox, c.pose, 0.f);
+
+            float x = c.bbox.xyz.x();
+            float y = c.bbox.xyz.y();
+            float z = c.bbox.xyz.z();
+            lmcore::PosColorVertex base = {.r = 1.f, .g = 1.f, .b = 0.f};
+            auto p0 = base;
+            p0.x = -x;
+            p0.y = -y;
+            p0.z = -z;
+            auto p1 = p0;
+            p1.x = x;
+            auto p2 = p0;
+            p2.z = z;
+            auto p3 = p1;
+            p3.z = z;
+
+            auto _p0 = p0;
+            _p0.y = y;
+            auto _p1 = p1;
+            _p1.y = y;
+            auto _p2 = p2;
+            _p2.y = y;
+            auto _p3 = p3;
+            _p3.y = y;
+            
+            vs.emplace_back();
+            auto & v = vs.back();
+
+            v.push_back(p2);
+            v.push_back(p3);
+            v.push_back(_p2);
+            v.push_back(_p3);
+            v.push_back(p2);
+            v.push_back(_p2);
+            v.push_back(p3);
+            v.push_back(_p3);
+
+            v.push_back(p0);
+            v.push_back(p1);
+            v.push_back(_p0);
+            v.push_back(_p1);
+            v.push_back(p0);
+            v.push_back(_p0);
+            v.push_back(p1);
+            v.push_back(_p1);
+
+            v.push_back(_p0);
+            v.push_back(_p2);
+            v.push_back(p0);
+            v.push_back(p2);
+            v.push_back(_p1);
+            v.push_back(_p3);
+            v.push_back(p1);
+            v.push_back(p3);
+
+            auto rh = rd->CreateRenderObject(v.data(),v.size());
+
+            lmcore::RenderComponent rc = {.handle = rh,.program = "grid", .line = true};
+            lmcore::PhysicalComponent pc = {.handle = ph};
+            entities->RegisterEntity().add(rc).add(pc);
+        }
     }
 
     for (auto &f : fp_0.floors)
@@ -107,42 +182,22 @@ int main()
         }
     }
 
-    // lmcore::Mat4f idmtx = lmcore::Mat4f::Identity();
-    lmcore::Iso3f idmtx = lmcore::Iso3f::Identity();
     auto wall_v = rd->CreateRenderObject(temp_walls.data(), temp_walls.size());
-    lmcore::FrameObject wallObj;
-    wallObj.h = wall_v;
-    wallObj.p = "basic";
-    wallObj.line = false;
-    wallObj.transform = idmtx;
-
     lmcore::RenderComponent rc_wall = {.handle = wall_v, .program = "basic", .line = false};
     entities->RegisterEntity().add(rc_wall);
 
     auto wall_line_v = rd->CreateRenderObject(fpline_vertices.data(), fpline_vertices.size());
-    lmcore::FrameObject walllineObj;
-    walllineObj.h = wall_line_v;
-    walllineObj.p = "grid";
-    walllineObj.line = true;
-    walllineObj.transform = idmtx;
-
     lmcore::RenderComponent rc_wall_line = {.handle = wall_line_v, .program = "grid", .line = true};
     entities->RegisterEntity().add(rc_wall_line);
 
     initGridData();
     auto grid_v = rd->CreateRenderObject(gridVertices, 204);
-    lmcore::FrameObject gridObj;
-    gridObj.h = grid_v;
-    gridObj.p = "grid";
-    gridObj.line = true;
-    gridObj.transform = idmtx;
-
     lmcore::RenderComponent rc_grid = {.handle = grid_v, .program = "grid", .line = true};
     entities->RegisterEntity().add(rc_grid);
 
     std::vector<lmcore::PosColorVertex> cubev;
     cubev.reserve(36u);
-    float cubescale = 0.8f;
+    float cubescale = 0.2f;
     for (auto p : lmcore::geo_default_cube)
     {
         p.x *= (cubescale * 0.5f);
@@ -151,20 +206,15 @@ int main()
         cubev.push_back(p);
     }
 
-    phy->Init();
-
-    //phy->RegisterPlan({0.f, 0.f, 1.f}, {0.f, 0.f, 0.f});
     lmcore::Iso3f fiso = lmcore::Iso3f::Identity();
-    fiso.translate(lmcore::Vec3f{0.f,0.f,-1.f});
-    phy->RegisterPhysicalObject({.xyz = {100.f, 100.f, 1.f}}, fiso, 0.f);
+    fiso.translate(lmcore::Vec3f{0.f, 0.f, -1.f});
+    auto planh = phy->RegisterPhysicalObject({.xyz = {100.f, 100.f, 1.f}}, fiso, 0.f);
 
     auto cube = rd->CreateRenderObject(cubev.data(), 36u);
-    std::vector<lmcore::FrameObject> fObjs;
-    std::vector<lmcore::PhysicalObjectHandle> pHandles;
 
-    uint32_t x = 4u;
-    uint32_t y = 4u;
-    uint32_t z = 6u;
+    uint32_t x = 5u;
+    uint32_t y = 5u;
+    uint32_t z = 5u;
 
     float distance = 1.2f;
 
@@ -179,17 +229,10 @@ int main()
                     (_x - x * 0.5f) * distance,
                     (_y - y * 0.5f) * distance,
                     (_z - z * 0.5f) * distance + 20.f});
-                lmcore::FrameObject cubeObj;
-                cubeObj.h = cube;
-                cubeObj.p = "basic";
-                cubeObj.line = false;
-                cubeObj.transform = iso;
                 auto phcube = phy->RegisterPhysicalObject({.xyz = {cubescale * 0.5f, cubescale * 0.5f, cubescale * 0.5f}}, iso, 1.f);
-                fObjs.push_back(cubeObj);
-                pHandles.push_back(phcube);
                 lmcore::RenderComponent rc = {.handle = cube, .program = "basic", .line = false};
                 lmcore::PhysicalComponent pc = {.handle = phcube};
-                entities->RegisterEntity().add(rc).add(pc).end();
+                //entities->RegisterEntity().add(rc).add(pc).end();
             }
         }
     }
@@ -197,20 +240,11 @@ int main()
     while (!rd->ShouldClose())
     {
         phy->Update(0.016f);
+        systems->Update(entities);
+        std::vector<lmcore::FrameObject> fobjs;
+        entities->GatherObjects<lmcore::FrameObject>(fobjs);
 
-        rd->PushFrameObject(gridObj);
-        rd->PushFrameObject(walllineObj);
-        rd->PushFrameObject(wallObj);
-
-        auto size = fObjs.size();
-        for (auto i = 0; i < size; i++)
-        {
-            auto phcube = pHandles[i];
-            auto cubestate = phy->GetPhysicalState(phcube);
-            auto cubeObj = fObjs[i];
-            cubeObj.transform = cubestate.pose;
-            rd->PushFrameObject(cubeObj);
-        }
+        rd->PushFrameObjects(fobjs);
 
         rd->PreUpdate();
 

@@ -167,6 +167,11 @@ class Renderer::Impl{
             mFrameObjects.objs.push_back(obj);
         }
 
+        void PushFrameObjects(const std::vector<FrameObject> & objs)
+        {
+            mFrameObjects.objs.insert(mFrameObjects.objs.end(),objs.begin(),objs.end());
+        }
+
         template<typename T>
         void CreateUniform(const std::string & name)
         {
@@ -442,6 +447,11 @@ bool Renderer::CreateProgram(const std::string &name, const std::string &shadern
 void Renderer::PushFrameObject(FrameObject obj)
 {
     impl->PushFrameObject(obj);
+}
+
+void Renderer::PushFrameObjects(const std::vector<FrameObject> & objs)
+{
+    impl->PushFrameObjects(objs);
 }
 
 RenderObjectHandle Renderer::CreateRenderObject(const lmcore::PosColorVertex* const vertices, uint32_t count)

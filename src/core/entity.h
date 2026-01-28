@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <vector>
 #include <cassert>
+#include <type_traits>
 #include "core/renderer.h"
 #include "core/simulator.h"
 
@@ -71,7 +72,7 @@ namespace lmcore
                 assert(entity->physicalComponentHandle == k_invalid_handle);
                 ComponentHandle h = manager->mPhysicalComponentPool.size();
                 manager->mPhysicalComponentPool.push_back(pc);
-                entity->renderComponentHandle = h;
+                entity->physicalComponentHandle = h;
                 return *this;
             }
 
@@ -97,6 +98,28 @@ namespace lmcore
         void AddRenderEngine(std::shared_ptr<Renderer> renderer)
         {
             mRenderer = renderer;
+        }
+
+        template <typename T>
+        void GatherObjects(std::vector<T> &objs)
+        {
+            static_assert(std::is_same_v<T, FrameObject>);
+            for (auto &e : mPool.entities)
+            {
+                bool r = (e.renderComponentHandle != k_invalid_handle) &&
+                         (e.active) &&
+                         (!e.dead);
+                if (!r)
+                    continue;
+
+                FrameObject fo;
+                auto &ro = mRenderComponentPool[e.renderComponentHandle];
+                fo.h = ro.handle;
+                fo.line = ro.line;
+                fo.p = ro.program;
+                fo.transform = e.iso;
+                objs.push_back(fo);
+            }
         }
 
     private:
@@ -144,16 +167,20 @@ namespace lmcore
         virtual void Update(EntityManager *manager)
         {
             auto &pool = get_entities_pool(manager);
+            auto &pcs = get_physical_component_array(manager);
             auto size = pool.entities.size();
             for (auto i = 0; i < size; i++)
             {
                 auto &e = pool.entities[i];
                 auto ph = e.physicalComponentHandle;
-                // auto rh = e.renderComponentHandle;
-                if (ph == k_invalid_handle)
+                if (ph == k_invalid_handle || ph >= pcs.size())
                     continue;
+                auto & pc = pcs[ph];
+                if (!pc.isValid || pc.handle == k_invalid_handle)
+                    continue;
+
                 auto phy = get_simualtor(manager);
-                auto cubestate = phy->GetPhysicalState(ph);
+                auto cubestate = phy->GetPhysicalState(pc.handle);
                 e.iso = cubestate.pose;
             }
         }
@@ -166,10 +193,10 @@ namespace lmcore
         {
             mSystems.push_back(sys);
         }
-        
+
         void Update(std::shared_ptr<EntityManager> enm)
         {
-            for(auto & s:mSystems)
+            for (auto &s : mSystems)
             {
                 s->Update(enm.get());
             }

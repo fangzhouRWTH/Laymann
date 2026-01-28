@@ -109,6 +109,7 @@ class Renderer
         void Destroy();
         bool CreateProgram(const std::string & name, const std::string & shadern);
         void PushFrameObject(FrameObject obj);
+        void PushFrameObjects(const std::vector<FrameObject> & objs);
         RenderObjectHandle CreateRenderObject(const lmcore::PosColorVertex* const vertices, uint32_t count);
     
     private:

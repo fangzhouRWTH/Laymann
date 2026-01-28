@@ -14,4 +14,6 @@ namespace lmcore
 
     typedef Eigen::Hyperplane<float,2> Line;
     typedef Eigen::ParametrizedLine<float,2> PLine;
+
+    inline float _eps_ = 1e-6; 
 }

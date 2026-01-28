@@ -26,7 +26,7 @@ namespace lmcore
     struct BBox
     {
         Vec3f xyz;
-        Mat4f transform;
+        //Mat4f transform;
     };
 
     enum class ERoomType
@@ -50,9 +50,9 @@ namespace lmcore
 
     struct FPPoint
     {
-        Vec3f value = {0.0f,0.0f,0.0f};
+        Vec3f value = {0.0f, 0.0f, 0.0f};
 
-        bool operator==(const FPPoint & other) const
+        bool operator==(const FPPoint &other) const
         {
             return value == other.value;
         }
@@ -63,9 +63,9 @@ namespace lmcore
         FPPoint start;
         FPPoint end;
 
-        bool operator==(const FPLineSegment & other) const
+        bool operator==(const FPLineSegment &other) const
         {
-            return ((start==other.start)&&(end==other.end))||((start==other.end)&&(end==other.start));
+            return ((start == other.start) && (end == other.end)) || ((start == other.end) && (end == other.start));
         }
     };
 
@@ -110,22 +110,31 @@ namespace lmcore
         lmcore::Vec3f normal;
     };
 
+    struct FPWallCollision
+    {
+        BBox bbox;
+        Iso3f pose;
+    };
+
     struct FPSolidifiedWallGeoData
     {
         std::vector<PosColorVertex> baseForm;
         std::vector<FPWallFace> faces;
         std::vector<PosColorVertex> bands;
+
+        Iso3f pose;
     };
 
     struct FPWallSegment
     {
         FPLineSegment value;
-    
+
         float override_height = 0.f;
         float override_width = 0.f;
-    
-        //temp
+
+        // temp
         std::vector<uint32_t> opening_indices;
+        std::vector<FPWallCollision> collisions;
         FPSolidifiedWallGeoData data;
     };
 
@@ -175,7 +184,7 @@ namespace lmcore
     struct RenderObject
     {
         std::vector<PosColorVertex> vertices;
-        //atm we dont use index draw
+        // atm we dont use index draw
     };
 
     struct PhysicalObject
@@ -187,13 +196,12 @@ namespace lmcore
 
     struct StaticStructure
     {
-        //RenderObject rObj;
+        // RenderObject rObj;
         Mat4f transform;
         std::vector<BBox> bboxes;
     };
 
     struct Walls : public StaticStructure
     {
-
     };
 }
