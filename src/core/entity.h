@@ -175,7 +175,7 @@ namespace lmcore
                 auto ph = e.physicalComponentHandle;
                 if (ph == k_invalid_handle || ph >= pcs.size())
                     continue;
-                auto & pc = pcs[ph];
+                auto &pc = pcs[ph];
                 if (!pc.isValid || pc.handle == k_invalid_handle)
                     continue;
 

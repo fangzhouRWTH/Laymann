@@ -353,7 +353,11 @@ namespace lmcore
                 float ly = ay.norm() / 2.f;
                 float lz = az.norm() / 2.f;
 
-                auto pos = (ax + ay + az) / 2.f + po;
+                //auto pos = (ax + ay + az) / 2.f + po;
+                float dx = ax.x()/2.f + po.x();
+                float dy = ay.y()/2.f + po.y();
+                float dz = az.z()/2.f + po.z();
+                Vec3f pos = {-dx,-dy,dz};
                 // auto pos = ()
                 ax.normalize();
                 ay.normalize();
@@ -382,8 +386,9 @@ namespace lmcore
                 rotation.col(2) = az;
 
                 Iso3f iso = Iso3f::Identity();
+                Mat4f move = Mat4f::Identity();
                 // iso.translate(Vec3f(0.f,0.f,3.f));
-                iso.rotate(rotation);
+                iso.rotate(rotation);         
                 iso.translate(pos);
                 wc.pose = iso;
 
