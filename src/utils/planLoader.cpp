@@ -353,9 +353,9 @@ namespace lmcore
                 float ly = ay.norm() / 2.f;
                 float lz = az.norm() / 2.f;
 
-                Vec3f pos = (po + op)/2.f;
-                //pos.x() = -pos.x();
-                //pos.y() = -pos.y();
+                Vec3f pos = (po + op) / 2.f;
+                // pos.x() = -pos.x();
+                // pos.y() = -pos.y();
 
                 ax.normalize();
                 ay.normalize();
@@ -389,25 +389,23 @@ namespace lmcore
                 iso.translate(pos);
                 wc.pose = iso;
 
-                //collisions.push_back(wc);
+                // collisions.push_back(wc);
 
                 FPWallCollision _wc;
-                _wc.bbox.xyz = Vec3f{0.2f,0.2f,0.2f};
+                //_wc.bbox.xyz = Vec3f{0.2f, 0.2f, 0.2f};
+                _wc.bbox = wc.bbox;
                 _wc.pose = Iso3f::Identity();
 
-                Eigen::AngleAxisf rot(0.1f,Eigen::Vector3f::UnitZ());
+                Eigen::AngleAxisf rot(0.1f, Eigen::Vector3f::UnitZ());
 
-                //_wc.pose.translate(pos);
                 Mat4f mtx = Mat4f::Identity();
                 Mat4f rotm = Mat4f::Identity();
                 Mat4f trans = Mat4f::Identity();
-                rotm.block(0,0,3,3) = rot.toRotationMatrix(); 
-                trans.block(0,3,3,1) = pos;
+                rotm.block(0, 0, 3, 3) = rotation;
+                trans.block(0, 3, 3, 1) = pos;
+                mtx = trans * rotm;
+                _wc.pose.matrix() = mtx;
 
-                mtx = trans * rotm * mtx;
-                //_wc.pose.linear() = rot.toRotationMatrix();
-                //_wc.pose.translation() = pos;
-                _wc.pose.matrix() = mtx * _wc.pose.matrix();
                 collisions.push_back(_wc);
             };
 

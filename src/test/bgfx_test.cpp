@@ -89,6 +89,7 @@ int main()
 
     std::vector<lmcore::PosColorVertex> temp_walls;
     std::vector<std::vector<lmcore::PosColorVertex>> vs;
+    std::vector<lmcore::FrameObject> fos;
     bool has = false;
     for (auto &w : fp_0.walls)
     {
@@ -110,7 +111,7 @@ int main()
             // if(has)
             //     break;
             // has =true;
-            auto ph = phy->RegisterPhysicalObject(c.bbox, c.pose, 0.f);
+            //auto ph = phy->RegisterPhysicalObject(c.bbox, c.pose, 0.f);
 
             float x = c.bbox.xyz.x();
             float y = c.bbox.xyz.y();
@@ -137,7 +138,9 @@ int main()
             _p3.y = y;
             
             vs.emplace_back();
+            fos.emplace_back();
             auto & v = vs.back();
+            auto & f = fos.back();
 
             v.push_back(p2);
             v.push_back(p3);
@@ -168,9 +171,14 @@ int main()
 
             auto rh = rd->CreateRenderObject(v.data(),v.size());
 
-            lmcore::RenderComponent rc = {.handle = rh,.program = "grid", .line = true};
-            lmcore::PhysicalComponent pc = {.handle = ph};
-            entities->RegisterEntity().add(rc).add(pc);
+            f.h = rh;
+            f.transform = c.pose;
+            f.line = true;
+            f.p = "grid";
+
+            //lmcore::RenderComponent rc = {.handle = rh,.program = "grid", .line = true};
+            //lmcore::PhysicalComponent pc = {.handle = ph};
+            //entities->RegisterEntity().add(rc).add(pc);
         }
     }
 
@@ -245,6 +253,7 @@ int main()
         entities->GatherObjects<lmcore::FrameObject>(fobjs);
 
         rd->PushFrameObjects(fobjs);
+        rd->PushFrameObjects(fos);
 
         rd->PreUpdate();
 

@@ -1,0 +1,95 @@
+我使用了bulletPhysic物理引擎，也就是说，我需要将前面的矩阵传入bulletphysic进行碰撞体初始化，之后再由碰撞体模拟来更新渲染物体的矩阵更新，这中间会不会涉及了bulletphysic引擎的矩阵格式问题
+
+会，而且非常可能：你现在其实在做“三套坐标/矩阵约定”的串联（Eigen/你自己的 Mat4f → Bullet → bgfx），任何一段的行/列主序、左乘/右乘、内存布局不一致，都会出现你说的“看起来先平移再绕世界原点转”。
+
+下面给你一个直接可执行的判断框架 + 最稳的对接方式。
+
+1) Bullet 的矩阵约定是什么（你必须对齐这一点）
+
+Bullet 的 btTransform 本质是 R + T（旋转基 btMatrix3x3 basis + 平移 btVector3 origin），不是一个随便塞 4x4 的矩阵。
+
+当你要把一个 4x4 传给 Bullet 时，正确做法是把它拆成：
+
+basis = 旋转 3x3
+
+origin = 平移 (x,y,z)
+
+而不是直接把 16 floats 当作 Bullet 的矩阵格式去 memcpy。
+
+只要你用 btTransform::setBasis() 和 setOrigin()，你基本就绕开了“4x4 主序/转置”的坑。
+
+2) 最常见出错点：你从 Bullet 拿变换去渲染时，直接 getOpenGLMatrix() / getMatrix() 传给 bgfx
+
+Bullet 有个经典接口：
+
+btTransform::getOpenGLMatrix(float* m)：填充一个 **OpenGL 风格的 4x4 float[16]（列主序）**数组（名字就提示了）。
+
+如果你把 Eigen 的 mtx.data() 直接当 OpenGL 列主序传给 bgfx（或反过来），会错。
+如果你把 Bullet 的 getOpenGLMatrix() 得到的数组又当成 row-major 去解释，也会错。
+
+**但好消息：**只要你遵守两条，你就不会乱：
+
+**Bullet → 渲染：**用 getOpenGLMatrix() 得到 float[16]，直接丢给 bgfx::setTransform()（bgfx 也按列主序用）
+
+**你 → Bullet：**用 setBasis/setOrigin，不要 memcpy 4x4
+
+3) 你现在这条链路建议这样写（最稳、最少歧义）
+A) 初始化 Bullet 刚体（从你的 Eigen/Mat4f）
+Mat4f m = mtx; // 你算出来的 TR
+
+btMatrix3x3 basis(
+    m(0,0), m(0,1), m(0,2),
+    m(1,0), m(1,1), m(1,2),
+    m(2,0), m(2,1), m(2,2)
+);
+btVector3 origin(m(0,3), m(1,3), m(2,3));
+
+btTransform t;
+t.setBasis(basis);
+t.setOrigin(origin);
+
+// 用 t 去 setWorldTransform / motionState 初始化
+
+
+这一步不依赖你 Mat4f 的内存主序，只依赖你用 m(r,c) 的“数学索引”，所以稳。
+
+B) 每帧从 Bullet 取刚体世界变换 → 给 bgfx
+btTransform t = body->getWorldTransform(); // 或 motionState->getWorldTransform(t)
+
+float m16[16];
+t.getOpenGLMatrix(m16); // 列主序 OpenGL 格式
+
+bgfx::setTransform(m16);
+
+
+这一步也稳：Bullet 明确输出 OpenGL 列主序数组。
+
+4) 你的问题“会不会涉及 Bullet 的矩阵格式问题？”
+
+会，而且非常可能就在这几种情况：
+
+你把 Eigen 4x4 的 data() 直接 memcpy 给 Bullet（错：主序不一定一致 + Bullet 更推荐用 basis/origin）。
+
+你从 Bullet 拿 4x4（例如 getOpenGLMatrix）之后，自己又转成 Eigen 时做了转置/误读。
+
+你在 Bullet 和渲染之间混用了不同的约定：
+
+Bullet 输出列主序，你当行主序读
+
+或你传给 bgfx 的其实是 Eigen row-major 的内存
+
+5) 一招快速定位：在 Bullet → 渲染这一步完全绕开 Eigen
+
+你现在就做一个实验（不用改架构）：
+
+渲染时不要用 o.iso.matrix().data()
+
+改成用 Bullet getOpenGLMatrix(m16) 的结果直接 setTransform
+
+如果这样一改，旋转中心/平移行为立刻正常，那就说明问题不在 bgfx，也不在数学乘法，而在 Eigen/Mat4f 到 bgfx 这段的主序/转置，以及你中间构造 o.iso.matrix() 的方式。
+
+如果你把下面两段贴出来，我可以直接告诉你“错在第几步”：
+
+你是怎么把 mtx 放进 Bullet 的（创建 btTransform / btRigidBody 的代码片段）
+
+你是怎么从 Bullet 更新回 o.iso 的（motionState / getWorldTransform 后如何写回矩阵）
