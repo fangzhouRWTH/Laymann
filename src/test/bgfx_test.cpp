@@ -77,8 +77,8 @@ int main()
 
     auto rootpath = lmcore::getExeFolderPath();
     // auto plan_0_path = rootpath + std::string("/../data/plan/l_singleStudio01.json");
-    //auto plan_0_path = rootpath + std::string("/../data/plan/l_twoBedroomApartment03.json");
-    auto plan_0_path = rootpath + std::string("/../data/plan/room_box.json");
+    auto plan_0_path = rootpath + std::string("/../data/plan/l_twoBedroomApartment03.json");
+    //auto plan_0_path = rootpath + std::string("/../data/plan/room_box.json");
     auto fp_0 = lmcore::load_floor_plan_from_json(plan_0_path);
     std::vector<lmcore::PosColorVertex> fpline_vertices;
     std::vector<int> fpline_indices;
