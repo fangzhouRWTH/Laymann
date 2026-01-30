@@ -78,7 +78,7 @@ int main()
     auto rootpath = lmcore::getExeFolderPath();
     // auto plan_0_path = rootpath + std::string("/../data/plan/l_singleStudio01.json");
     auto plan_0_path = rootpath + std::string("/../data/plan/l_twoBedroomApartment03.json");
-    //auto plan_0_path = rootpath + std::string("/../data/plan/room_box.json");
+    // auto plan_0_path = rootpath + std::string("/../data/plan/room_box.json");
     auto fp_0 = lmcore::load_floor_plan_from_json(plan_0_path);
     std::vector<lmcore::PosColorVertex> fpline_vertices;
     std::vector<int> fpline_indices;
@@ -108,10 +108,6 @@ int main()
 
         for (auto c : w.collisions)
         {
-            // if(has)
-            //     break;
-            // has =true;
-            //auto ph = phy->RegisterPhysicalObject(c.bbox, c.pose, 0.f);
 
             float x = c.bbox.xyz.x();
             float y = c.bbox.xyz.y();
@@ -136,11 +132,11 @@ int main()
             _p2.y = y;
             auto _p3 = p3;
             _p3.y = y;
-            
+
             vs.emplace_back();
             fos.emplace_back();
-            auto & v = vs.back();
-            auto & f = fos.back();
+            auto &v = vs.back();
+            auto &f = fos.back();
 
             v.push_back(p2);
             v.push_back(p3);
@@ -169,16 +165,17 @@ int main()
             v.push_back(p1);
             v.push_back(p3);
 
-            auto rh = rd->CreateRenderObject(v.data(),v.size());
+            auto rh = rd->CreateRenderObject(v.data(), v.size());
+            auto ph = phy->RegisterPhysicalObject(c.bbox,c.pose,0.f);
 
             f.h = rh;
             f.transform = c.pose;
             f.line = true;
             f.p = "grid";
 
-            //lmcore::RenderComponent rc = {.handle = rh,.program = "grid", .line = true};
-            //lmcore::PhysicalComponent pc = {.handle = ph};
-            //entities->RegisterEntity().add(rc).add(pc);
+            lmcore::RenderComponent rc = {.handle = rh,.program = "grid", .line = true};
+            lmcore::PhysicalComponent pc = {.handle = ph};
+            entities->RegisterEntity().add(rc).add(pc);
         }
     }
 
@@ -196,7 +193,7 @@ int main()
 
     auto wall_line_v = rd->CreateRenderObject(fpline_vertices.data(), fpline_vertices.size());
     lmcore::RenderComponent rc_wall_line = {.handle = wall_line_v, .program = "grid", .line = true};
-    entities->RegisterEntity().add(rc_wall_line);
+    // entities->RegisterEntity().add(rc_wall_line);
 
     initGridData();
     auto grid_v = rd->CreateRenderObject(gridVertices, 204);
@@ -220,9 +217,9 @@ int main()
 
     auto cube = rd->CreateRenderObject(cubev.data(), 36u);
 
-    uint32_t x = 5u;
-    uint32_t y = 5u;
-    uint32_t z = 5u;
+    uint32_t x = 6u;
+    uint32_t y = 6u;
+    uint32_t z = 20u;
 
     float distance = 1.2f;
 
@@ -240,7 +237,7 @@ int main()
                 auto phcube = phy->RegisterPhysicalObject({.xyz = {cubescale * 0.5f, cubescale * 0.5f, cubescale * 0.5f}}, iso, 1.f);
                 lmcore::RenderComponent rc = {.handle = cube, .program = "basic", .line = false};
                 lmcore::PhysicalComponent pc = {.handle = phcube};
-                //entities->RegisterEntity().add(rc).add(pc).end();
+                entities->RegisterEntity().add(rc).add(pc).end();
             }
         }
     }
@@ -253,7 +250,6 @@ int main()
         entities->GatherObjects<lmcore::FrameObject>(fobjs);
 
         rd->PushFrameObjects(fobjs);
-        rd->PushFrameObjects(fos);
 
         rd->PreUpdate();
 

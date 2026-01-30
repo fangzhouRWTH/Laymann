@@ -70,9 +70,9 @@ class Window
 
 struct Camera
 {
-    lmcore::Vec3f position = {0.f,-0.5f,12.5f};
-    float yaw = 3.1415926f;
-    float pitch = -1.55f;
+    lmcore::Vec3f position = {-10.f,-10.f,12.5f};
+    float yaw = 4.f;
+    float pitch = -0.7f;
 
 
 };

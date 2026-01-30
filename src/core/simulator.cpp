@@ -27,8 +27,8 @@ namespace lmcore
         t.x() = translation.x();
         t.y() = translation.y();
         t.z() = translation.z();
-        iso.rotate(q);
-        iso.translate(t);
+        iso.linear() = q.toRotationMatrix();
+        iso.translation() = t;
 
         return iso;
     }
