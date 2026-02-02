@@ -20,6 +20,7 @@
 #include "core/simulator.h"
 #include "core/geometry.h"
 #include "core/entity.h"
+#include "core/engine.h"
 
 #define GLFW_EXPOSE_NATIVE_X11
 #include <GLFW/glfw3native.h>
@@ -217,9 +218,9 @@ int main()
 
     auto cube = rd->CreateRenderObject(cubev.data(), 36u);
 
-    uint32_t x = 6u;
-    uint32_t y = 6u;
-    uint32_t z = 20u;
+    uint32_t x = 2u;
+    uint32_t y = 2u;
+    uint32_t z = 5u;
 
     float distance = 1.2f;
 
@@ -242,17 +243,17 @@ int main()
         }
     }
 
+    lmcore::Clock clock;
     while (!rd->ShouldClose())
     {
-        phy->Update(0.016f);
+        float dt = clock.tick();
+        phy->Update(dt);
         systems->Update(entities);
         std::vector<lmcore::FrameObject> fobjs;
         entities->GatherObjects<lmcore::FrameObject>(fobjs);
 
         rd->PushFrameObjects(fobjs);
-
         rd->PreUpdate();
-
         rd->Update();
         rd->PostUpdate();
     }
