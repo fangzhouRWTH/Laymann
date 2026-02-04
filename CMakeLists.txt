@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.10.0)
 project(Laymann VERSION 0.1.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if (WIN32)
     add_compile_definitions(PLATFORM_WINDOWS)
@@ -14,12 +15,19 @@ endif()
 add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/glfw)
 add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/bgfx)
 add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/catch2)
+add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/entt)
 
 set(BUILD_BULLET2_DEMOS OFF CACHE BOOL "" FORCE)
 set(BUILD_CPU_DEMOS OFF CACHE BOOL "" FORCE)
 set(BUILD_OPENGL3_DEMOS OFF CACHE BOOL "" FORCE)
 set(BUILD_UNIT_TESTS OFF CACHE BOOL "" FORCE)
 set(BUILD_EXTRAS OFF CACHE BOOL "" FORCE)
+
+set(ENTT_BUILD_BENCHMARK OFF CACHE BOOL "" FORCE)
+set(ENTT_BUILD_EXAMPLE OFF CACHE BOOL "" FORCE)
+set(ENTT_BUILD_LIB OFF CACHE BOOL "" FORCE)
+set(ENTT_BUILD_SNAPSHOT OFF CACHE BOOL "" FORCE)
+
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/bullet3)
 add_subdirectory(${CMAKE_SOURCE_DIR}/src)

@@ -8,6 +8,7 @@ add_executable(core
         ${CMAKE_SOURCE_DIR}/src/utils/planLoader.cpp
         ${CMAKE_SOURCE_DIR}/src/core/simulator.cpp
         ${CMAKE_SOURCE_DIR}/src/core/geometry.cpp
+        ${CMAKE_SOURCE_DIR}/src/core/ecs.cpp
     #PUBLIC       
 )
 
@@ -23,6 +24,7 @@ target_include_directories(core
         ${CMAKE_SOURCE_DIR}/third_party/eigen
         ${CMAKE_SOURCE_DIR}/third_party/libigl/include
         ${CMAKE_SOURCE_DIR}/third_party/openmesh
+        ${CMAKE_SOURCE_DIR}/third_party/entt/single_include
 )
 
 target_compile_features(core PUBLIC cxx_std_20)

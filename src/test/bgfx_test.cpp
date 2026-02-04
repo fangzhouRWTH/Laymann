@@ -19,7 +19,7 @@
 #include "core/renderer.h"
 #include "core/simulator.h"
 #include "core/geometry.h"
-#include "core/entity.h"
+#include "core/ecs.h"
 #include "core/engine.h"
 
 #define GLFW_EXPOSE_NATIVE_X11
@@ -243,6 +243,10 @@ int main()
         }
     }
 
+    std::shared_ptr<lmcore::ECSManager> ecs = std::make_shared<lmcore::ECSManager>();
+    ecs->Init();
+    auto et = ecs->Create();
+    ecs->Add(et,lmcore::RenderComponent{});
     lmcore::Clock clock;
     while (!rd->ShouldClose())
     {
