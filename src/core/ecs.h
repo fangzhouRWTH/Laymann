@@ -37,10 +37,7 @@ namespace lmcore
 
             };
 
-            virtual void Update(ECSContext & context)
-            {
-
-            }
+            virtual void Update(ECSContext & context);
         private:
             std::shared_ptr<Renderer> mRenderer;
     };

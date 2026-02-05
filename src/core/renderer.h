@@ -18,86 +18,89 @@
 #include "system/files.h"
 #include "utils/planLoader.h"
 #include "core/utils.h"
+#include "core/controller.h"
 
 #define GLFW_EXPOSE_NATIVE_X11
 #include <GLFW/glfw3native.h>
 
 namespace lmcore
 {
-//typedef uint32_t RenderProgramHandle;
-typedef uint32_t RenderObjectHandle;
+    // typedef uint32_t RenderProgramHandle;
+    typedef uint32_t RenderObjectHandle;
 
-class Window
-{
+    class Window
+    {
     public:
-        explicit Window(int width, int height):mWidth(width),mHeight(height){}
-        bool Init()
-        {
-            if (!glfwInit())
-            {
-                std::fprintf(stderr, "Failed to initialize GLFW\n");
-                return false;
-            }
-            glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-            mWindow = glfwCreateWindow(mWidth,mHeight,"Laymann v 0 0 1", nullptr, nullptr);
-            if (mWindow == nullptr)
-            {
-                std::fprintf(stderr, "Failed to create GLFW window\n");
-                glfwTerminate();
-                return false;
-            }
+        explicit Window(int width, int height) : mWidth(width), mHeight(height) {}
+        bool Init();
+        void Update();
 
-            glfwMakeContextCurrent(mWindow);
-            glfwSwapInterval(0);
-            //todo specify platform
-            x11Display = glfwGetX11Display();
-            x11Window  = glfwGetX11Window(mWindow);
-            return true;
-        }
-
-        void Terminate()
-        {
-            glfwDestroyWindow(mWindow);
-            glfwTerminate();
-        }
+        void Terminate();
 
         int mWidth;
         int mHeight;
-        GLFWwindow* mWindow = nullptr;
-        Display* x11Display;
+        GLFWwindow *mWindow = nullptr;
+        Display *x11Display;
         ::Window x11Window;
-};
 
-struct Camera
-{
-    lmcore::Vec3f position = {-10.f,-10.f,12.5f};
-    float yaw = 4.f;
-    float pitch = -0.7f;
+        std::shared_ptr<Control> mControl;
+    };
 
+    struct Camera
+    {
+        lmcore::Vec3f position = {-10.f, -10.f, 12.5f};
+        float yaw = 4.f;
+        float pitch = -0.7f;
+    };
 
-};
+    class Framework
+    {
+    public:
+        struct Info
+        {
+            // todo
+            uint32_t win_width = 1920;
+            uint32_t win_height = 1080;
+        };
 
-struct Controller
-{
-    bool rotating = false;
-    double lastMouseX = 0.0;
-    double lastMouseY = 0.0;
+        struct Context
+        {
+            std::shared_ptr<Window> win_ptr = nullptr;
+            std::shared_ptr<Control> ctrl_ptr = nullptr;
+            std::shared_ptr<Camera> cam_ptr = nullptr;
+        };
 
-    const float moveSpeed = 5.0f; 
-    const float mouseSensitivity = 0.005f; 
-};
+        bool Init(const Info &info);
 
-//TODO sort mechanism
-struct FrameObject
-{
-    RenderObjectHandle h;
-    std::string p;
-    bool line = false;
-    Iso3f transform;
-};
+        void PreUpdate();
+        void Update();
+        void PostUpdate();
 
-class Renderer
-{
+    private:
+        Context mctx;
+    };
+
+    struct Controller
+    {
+        bool rotating = false;
+        double lastMouseX = 0.0;
+        double lastMouseY = 0.0;
+
+        const float moveSpeed = 5.0f;
+        const float mouseSensitivity = 0.005f;
+    };
+
+    // TODO sort mechanism
+    struct FrameObject
+    {
+        RenderObjectHandle h;
+        std::string p;
+        bool line = false;
+        Iso3f transform;
+    };
+
+    class Renderer
+    {
     public:
         explicit Renderer(std::shared_ptr<Window> wptr);
         ~Renderer();
@@ -107,14 +110,13 @@ class Renderer
         void Update();
         void PostUpdate();
         void Destroy();
-        bool CreateProgram(const std::string & name, const std::string & shadern);
+        bool CreateProgram(const std::string &name, const std::string &shadern);
         void PushFrameObject(FrameObject obj);
-        void PushFrameObjects(const std::vector<FrameObject> & objs);
-        RenderObjectHandle CreateRenderObject(const lmcore::PosColorVertex* const vertices, uint32_t count);
-    
+        void PushFrameObjects(const std::vector<FrameObject> &objs);
+        RenderObjectHandle CreateRenderObject(const lmcore::PosColorVertex *const vertices, uint32_t count);
+
     private:
         class Impl;
         std::unique_ptr<Impl> impl;
-
-};
+    };
 }

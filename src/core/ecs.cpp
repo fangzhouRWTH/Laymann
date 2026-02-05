@@ -111,7 +111,6 @@ namespace lmcore
     private:
         std::shared_ptr<entt::registry> registry = nullptr;
         EntityMapper mapper;
-        ECSContext context;
     };
 
     template <typename C>
@@ -134,18 +133,13 @@ namespace lmcore
         return impl->Create();
     }
 
-    void ECSManager::t_init()
-    {
-        impl->t_init();
-    }
-
-    void ECSManager::t_update()
-    {
-        impl->t_update();
-    }
-
     ECSManager::~ECSManager()
     {
+    }
+    
+    void ECSRenderSystem::Update(ECSContext &context)
+    {
+        //context
     }
 }
 
