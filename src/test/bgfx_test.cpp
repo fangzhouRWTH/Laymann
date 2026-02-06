@@ -59,8 +59,13 @@ void initGridData()
 
 int main()
 {
-    auto wd = std::make_shared<lmcore::Window>(1920, 1080);
-    wd->Init();
+    lmcore::Framework framework;
+    lmcore::Framework::Info finfo;
+    finfo.win_width = 1920;
+    finfo.win_height = 1080;
+    framework.Init(finfo);
+    auto fctx = framework.GetContext();
+    auto wd = fctx.win_ptr;
     auto rd = std::make_shared<lmcore::Renderer>(wd);
     rd->Init();
     auto phy = std::make_shared<lmcore::Simulator>();
@@ -248,7 +253,7 @@ int main()
     auto et = ecs->Create();
     ecs->Add(et,lmcore::RenderComponent{});
     lmcore::Clock clock;
-    while (!rd->ShouldClose())
+    while (!framework.ShouldClose())
     {
         float dt = clock.tick();
         phy->Update(dt);
@@ -257,6 +262,7 @@ int main()
         entities->GatherObjects<lmcore::FrameObject>(fobjs);
 
         rd->PushFrameObjects(fobjs);
+        framework.PreUpdate();
         rd->PreUpdate();
         rd->Update();
         rd->PostUpdate();

@@ -9,6 +9,7 @@ add_executable(core
         ${CMAKE_SOURCE_DIR}/src/core/simulator.cpp
         ${CMAKE_SOURCE_DIR}/src/core/geometry.cpp
         ${CMAKE_SOURCE_DIR}/src/core/ecs.cpp
+        ${CMAKE_SOURCE_DIR}/src/core/framework.cpp
     #PUBLIC       
 )
 
