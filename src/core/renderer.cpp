@@ -111,6 +111,8 @@ namespace lmcore
 
             init.resolution.width = (uint32_t)mWindowPtr->mWidth;
             init.resolution.height = (uint32_t)mWindowPtr->mHeight;
+            mFrameBufferWidth = (uint32_t)mWindowPtr->mWidth;
+            mFrameBufferHeight = (uint32_t)mWindowPtr->mHeight;
             init.resolution.reset = BGFX_RESET_VSYNC;
 
             if (!bgfx::init(init))
@@ -215,7 +217,7 @@ namespace lmcore
             bgfx::shutdown();
         }
 
-        void PreUpdate()
+        void PreUpdate(const RendererUpdateContext &ctx)
         {
             mCurrentTime = glfwGetTime();
             float dt = (float)(mCurrentTime - mLastTime);
@@ -327,8 +329,17 @@ namespace lmcore
             }
         }
 
-        void Update()
+        void Update(const RendererUpdateContext &ctx)
         {
+            if (ctx.width != mFrameBufferWidth || ctx.height != mFrameBufferHeight)
+            {
+                mFrameBufferWidth = ctx.width;
+                mFrameBufferHeight = ctx.height;
+
+                bgfx::reset(mFrameBufferWidth, (uint32_t)mFrameBufferHeight, BGFX_RESET_VSYNC);
+                bgfx::setViewRect(mViewId, 0, 0, (uint16_t)mFrameBufferWidth, (uint16_t)mFrameBufferHeight);
+            }
+
             for (auto o : mFrameObjects.objs)
             {
                 if (o.line)
@@ -347,7 +358,7 @@ namespace lmcore
             }
         }
 
-        void PostUpdate()
+        void PostUpdate(const RendererUpdateContext &ctx)
         {
             bgfx::frame();
             mFrameObjects.objs.clear();
@@ -366,6 +377,9 @@ namespace lmcore
         FrameObjectContainer mFrameObjects;
         RenderObjectContainer mRenderObjects;
         std::shared_ptr<Window> mWindowPtr = nullptr;
+
+        uint32_t mFrameBufferWidth = 0u;
+        uint32_t mFrameBufferHeight = 0u;
         const bgfx::ViewId mViewId = 0;
 
         bgfx::VertexLayout mPosColorLayout;
@@ -389,19 +403,19 @@ namespace lmcore
         return impl->Init();
     }
 
-    void Renderer::PreUpdate()
+    void Renderer::PreUpdate(const RendererUpdateContext &ctx)
     {
-        impl->PreUpdate();
+        impl->PreUpdate(ctx);
     }
 
-    void Renderer::Update()
+    void Renderer::Update(const RendererUpdateContext &ctx)
     {
-        impl->Update();
+        impl->Update(ctx);
     }
 
-    void Renderer::PostUpdate()
+    void Renderer::PostUpdate(const RendererUpdateContext &ctx)
     {
-        impl->PostUpdate();
+        impl->PostUpdate(ctx);
     }
 
     void Renderer::Destroy()

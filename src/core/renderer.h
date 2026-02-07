@@ -38,15 +38,21 @@ namespace lmcore
         Iso3f transform;
     };
 
+    struct RendererUpdateContext
+    {
+        uint32_t width = 0u;
+        uint32_t height = 0u;
+    };
+
     class Renderer
     {
     public:
         explicit Renderer(std::shared_ptr<Window> wptr);
         ~Renderer();
         bool Init();
-        void PreUpdate();
-        void Update();
-        void PostUpdate();
+        void PreUpdate(const RendererUpdateContext & ctx);
+        void Update(const RendererUpdateContext & ctx);
+        void PostUpdate(const RendererUpdateContext & ctx);
         void Destroy();
         bool CreateProgram(const std::string &name, const std::string &shadern);
         void PushFrameObject(FrameObject obj);

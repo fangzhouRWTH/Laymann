@@ -64,30 +64,6 @@ namespace lmcore
     class ECSManager::Impl
     {
     public:
-        void t_update()
-        {
-            // auto view = registry.view<const position, velocity>();
-
-            // // use a callback
-            // view.each([](const auto &pos, auto &vel) { /* ... */ });
-
-            // // use an extended callback
-            // view.each([](const auto entity, const auto &pos, auto &vel) { /* ... */ });
-
-            // // use a range-for
-            // for (auto [entity, pos, vel] : view.each())
-            // {
-            //     // ...
-            // }
-
-            // use forward iterators and get only the components of interest
-            // for (auto entity : view)
-            // {
-            //     auto &vel = view.get<velocity>(entity);
-            //     // ...
-            // }
-        }
-
         void Init()
         {
             registry = std::make_shared<entt::registry>();
@@ -140,6 +116,21 @@ namespace lmcore
     void ECSRenderSystem::Update(ECSContext &context)
     {
         //context
+    }
+
+    void ECSPhysicSystem::Update(ECSContext &context)
+    {
+        auto & reg = context.registry->registry;
+        auto view = reg.view<PhysicalComponent,PositionComponent>();
+
+        for(auto entity : view)
+        {
+            auto & phyc = view.get<PhysicalComponent>(entity);
+            auto & pos = view.get<PositionComponent>(entity);
+
+            auto s = mSimulator->GetPhysicalState(phyc.handle);
+            pos.iso = s.pose;
+        }
     }
 }
 

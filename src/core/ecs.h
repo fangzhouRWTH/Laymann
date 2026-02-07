@@ -3,6 +3,7 @@
 #include <vector>
 #include <cassert>
 #include <type_traits>
+#include "core/component.h"
 #include "core/renderer.h"
 #include "core/simulator.h"
 
@@ -42,18 +43,17 @@ namespace lmcore
             std::shared_ptr<Renderer> mRenderer;
     };
 
-    struct RenderComponent
+    class ECSPhysicSystem final : public ECSSystem
     {
-        bool isValid = true;
-        RenderObjectHandle handle;
-        std::string program;
-        bool line = false;
-    };
+        public:
+            ECSPhysicSystem(std::shared_ptr<Simulator> simulator):mSimulator(simulator)
+            {
 
-    struct PhysicalComponent
-    {
-        bool isValid = true;
-        PhysicalObjectHandle handle;
+            }
+
+            virtual void Update(ECSContext & context);
+        private:
+            std::shared_ptr<Simulator> mSimulator;
     };
 
     struct Entity
@@ -244,7 +244,6 @@ namespace lmcore
             
             template<typename Component>
             void Add(EntityHandle handle, Component component);
-            void t_update();
         private:
             class Impl;
 

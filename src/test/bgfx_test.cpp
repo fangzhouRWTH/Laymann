@@ -172,14 +172,14 @@ int main()
             v.push_back(p3);
 
             auto rh = rd->CreateRenderObject(v.data(), v.size());
-            auto ph = phy->RegisterPhysicalObject(c.bbox,c.pose,0.f);
+            auto ph = phy->RegisterPhysicalObject(c.bbox, c.pose, 0.f);
 
             f.h = rh;
             f.transform = c.pose;
             f.line = true;
             f.p = "grid";
 
-            lmcore::RenderComponent rc = {.handle = rh,.program = "grid", .line = true};
+            lmcore::RenderComponent rc = {.handle = rh, .program = "grid", .line = true};
             lmcore::PhysicalComponent pc = {.handle = ph};
             entities->RegisterEntity().add(rc).add(pc);
         }
@@ -251,7 +251,7 @@ int main()
     std::shared_ptr<lmcore::ECSManager> ecs = std::make_shared<lmcore::ECSManager>();
     ecs->Init();
     auto et = ecs->Create();
-    ecs->Add(et,lmcore::RenderComponent{});
+    ecs->Add(et, lmcore::RenderComponent{});
     lmcore::Clock clock;
     while (!framework.ShouldClose())
     {
@@ -262,10 +262,23 @@ int main()
         entities->GatherObjects<lmcore::FrameObject>(fobjs);
 
         rd->PushFrameObjects(fobjs);
+
+        uint32_t wd = 0u;
+        uint32_t ht = 0u;
         framework.PreUpdate();
-        rd->PreUpdate();
-        rd->Update();
-        rd->PostUpdate();
+        framework.GetFrameSize(wd, ht);
+
+        lmcore::RendererUpdateContext rCtx;
+        rCtx.width = wd;
+        rCtx.height = ht;
+
+        rd->PreUpdate(rCtx);
+
+        framework.Update();
+        rd->Update(rCtx);
+
+        framework.PostUpdate();
+        rd->PostUpdate(rCtx);
     }
 
     rd->Destroy();

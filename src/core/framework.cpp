@@ -106,7 +106,7 @@ namespace lmcore
             mHeight = fbH;
         }
 
-        mControl->previous_key_states = mControl->current_key_states;
+        // mControl->previous_key_states = mControl->current_key_states;
 
         // TODO CALL BACK FUNC
     }
@@ -165,10 +165,10 @@ namespace lmcore
         mctx.ctrl_ptr->previous_mouse_states = mctx.ctrl_ptr->current_mouse_states;
         mctx.ctrl_ptr->current_mouse_states.frame();
         glfwPollEvents();
+        mctx.win_ptr->Update();
     }
     void Framework::Update()
     {
-        mctx.win_ptr->Update();
     }
     void Framework::PostUpdate()
     {
@@ -176,5 +176,16 @@ namespace lmcore
     Framework::Context Framework::GetContext()
     {
         return mctx;
+    }
+    void Framework::GetFrameSize(uint32_t &width, uint32_t& height)
+    {
+        if (!mctx.win_ptr)
+        {
+            width = 0u;
+            height = 0u;
+            return;
+        }
+        width = mctx.win_ptr->mWidth;
+        height = mctx.win_ptr->mHeight;
     }
 }
