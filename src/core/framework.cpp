@@ -159,6 +159,7 @@ namespace lmcore
     }
     void Framework::PreUpdate()
     {
+        clock.tick();
         // todo
         mctx.ctrl_ptr->current_key_states.swap(mctx.ctrl_ptr->previous_key_states);
         mctx.ctrl_ptr->current_key_states.clear();

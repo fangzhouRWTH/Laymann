@@ -3,6 +3,7 @@
 #include "core/math.h"
 #include "core/renderer.h"
 #include "core/simulator.h"
+#include "core/framework.h"
 
 namespace lmcore
 {
@@ -25,4 +26,8 @@ namespace lmcore
         Iso3f iso = Iso3f::Identity();
     };
 
+    struct CameraComponent
+    {
+        std::shared_ptr<Camera> camera = nullptr;
+    };
 }

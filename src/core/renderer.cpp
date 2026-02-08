@@ -219,6 +219,15 @@ namespace lmcore
 
         void PreUpdate(const RendererUpdateContext &ctx)
         {
+            if (ctx.width != mFrameBufferWidth || ctx.height != mFrameBufferHeight)
+            {
+                mFrameBufferWidth = ctx.width;
+                mFrameBufferHeight = ctx.height;
+
+                bgfx::reset(mFrameBufferWidth, (uint32_t)mFrameBufferHeight, BGFX_RESET_VSYNC);
+                bgfx::setViewRect(mViewId, 0, 0, (uint16_t)mFrameBufferWidth, (uint16_t)mFrameBufferHeight);
+            }
+
             mCurrentTime = glfwGetTime();
             float dt = (float)(mCurrentTime - mLastTime);
             mLastTime = mCurrentTime;
@@ -331,15 +340,6 @@ namespace lmcore
 
         void Update(const RendererUpdateContext &ctx)
         {
-            if (ctx.width != mFrameBufferWidth || ctx.height != mFrameBufferHeight)
-            {
-                mFrameBufferWidth = ctx.width;
-                mFrameBufferHeight = ctx.height;
-
-                bgfx::reset(mFrameBufferWidth, (uint32_t)mFrameBufferHeight, BGFX_RESET_VSYNC);
-                bgfx::setViewRect(mViewId, 0, 0, (uint16_t)mFrameBufferWidth, (uint16_t)mFrameBufferHeight);
-            }
-
             for (auto o : mFrameObjects.objs)
             {
                 if (o.line)
