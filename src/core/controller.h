@@ -25,6 +25,16 @@ namespace lmcore
     {
         Press,
         Repeat,
+        Release,
+        EnumMax
+    };
+
+    enum class EKeyTemporalState : uint8_t
+    {
+        Up,
+        Down,
+        Press,
+        Release,
         EnumMax
     };
 
@@ -49,6 +59,12 @@ namespace lmcore
         return (s << uint32_t(state));
     }
 
+    inline uint8_t t_state_bit(EKeyTemporalState state)
+    {
+        uint8_t s = 1;
+        return (s << uint32_t(state));
+    }
+
     struct KeyState
     {
         uint8_t state = 0;
@@ -61,6 +77,26 @@ namespace lmcore
         void set(EKeyState s)
         {
             state = state | state_bit(s);
+        }
+    };
+
+    struct KeyTemporalState
+    {
+        uint8_t state = 0;
+
+        bool is_set(EKeyTemporalState s)
+        {
+            return (t_state_bit(s) & state);
+        }
+
+        void set(EKeyTemporalState s)
+        {
+            state = state | t_state_bit(s);
+        }
+
+        void unset(EKeyTemporalState s)
+        {
+            state = state & ~t_state_bit(s);
         }
     };
 
@@ -90,6 +126,53 @@ namespace lmcore
         }
     };
 
+    struct KeyTemporalStates
+    {
+        std::array<KeyTemporalState, key_size()> tstates;
+
+        void clear()
+        {
+            tstates = std::array<KeyTemporalState, key_size()>();
+        }
+
+        void deduct(const KeyStates &states)
+        {
+            for (auto i = 0; i < key_size(); i++)
+            {
+                auto k = states.states[i];
+                auto t = tstates[i];
+
+                tstates[i].unset(EKeyTemporalState::Press);
+                tstates[i].unset(EKeyTemporalState::Release);
+
+                if (k.is_set(EKeyState::Press))
+                {
+                    tstates[i].set(EKeyTemporalState::Press);
+                    tstates[i].set(EKeyTemporalState::Down);
+                    tstates[i].unset(EKeyTemporalState::Up);
+                }
+                else if (k.is_set(EKeyState::Release))
+                {
+                    tstates[i].set(EKeyTemporalState::Release);
+                    tstates[i].set(EKeyTemporalState::Up);
+                    tstates[i].unset(EKeyTemporalState::Down);
+                }
+            }
+        }
+
+        void set(const EKey &k, const KeyTemporalState &s)
+        {
+            auto idx = key_uint(k);
+            tstates[idx] = s;
+        }
+
+        KeyTemporalState get(const EKey &k) const
+        {
+            auto idx = key_uint(k);
+            return tstates[idx];
+        }
+    };
+
     struct MouseStates
     {
         double lastMouseX = 0.0;
@@ -103,7 +186,6 @@ namespace lmcore
 
         void frame()
         {
-
         }
     };
 
@@ -117,5 +199,20 @@ namespace lmcore
 
         KeyStates current_key_states;
         KeyStates previous_key_states;
+
+        KeyTemporalStates temporal_deduct_key_states;
+
+        void PreFrameUpdate()
+        {
+            temporal_deduct_key_states.deduct(current_key_states);
+        }
+
+        void PostFrameUpdate()
+        {
+            current_key_states.swap(previous_key_states);
+            current_key_states.clear();
+            previous_mouse_states = current_mouse_states;
+            current_mouse_states.frame();
+        }
     };
 }

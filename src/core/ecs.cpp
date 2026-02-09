@@ -237,7 +237,8 @@ namespace lmcore
         auto &reg = context.registry->reg;
         auto view = reg.view<CameraComponent, PositionComponent>();
 
-        auto keys = ctrlptr->current_key_states;
+        //auto keys = ctrlptr->current_key_states;
+        auto keys = ctrlptr->temporal_deduct_key_states;
         auto cmst = ctrlptr->current_mouse_states;
         auto lmst = ctrlptr->previous_mouse_states;
 
@@ -254,20 +255,20 @@ namespace lmcore
                 float moveRight = 0.0f;
                 float moveUp = 0.0f;
 
-                if (keys.get(EKey::W).is_set(EKeyState::Press))
+                if (keys.get(EKey::W).is_set(EKeyTemporalState::Down))
                     moveForward += 1.0f;
-                if (keys.get(EKey::S).is_set(EKeyState::Press))
+                if (keys.get(EKey::S).is_set(EKeyTemporalState::Down))
                     moveForward -= 1.0f;
-                if (keys.get(EKey::D).is_set(EKeyState::Press))
+                if (keys.get(EKey::D).is_set(EKeyTemporalState::Down))
                     moveRight -= 1.0f;
-                if (keys.get(EKey::A).is_set(EKeyState::Press))
+                if (keys.get(EKey::A).is_set(EKeyTemporalState::Down))
                     moveRight += 1.0f;
-                if (keys.get(EKey::E).is_set(EKeyState::Press))
+                if (keys.get(EKey::E).is_set(EKeyTemporalState::Down))
                     moveUp += 1.0f;
-                if (keys.get(EKey::Q).is_set(EKeyState::Press))
+                if (keys.get(EKey::Q).is_set(EKeyTemporalState::Down))
                     moveUp -= 1.0f;
 
-                if (keys.get(EKey::MouseRight).is_set(EKeyState::Press))
+                if (keys.get(EKey::MouseRight).is_set(EKeyTemporalState::Down))
                 {
                     double dx = cmst.lastMouseX - lmst.lastMouseX;
                     double dy = cmst.lastMouseY - lmst.lastMouseY;

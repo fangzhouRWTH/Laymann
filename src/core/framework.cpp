@@ -22,10 +22,12 @@ namespace lmcore
         auto &ks = ctx->ctrl_ptr->current_key_states;
         KeyState s;
 
+        std::cout<<"x"<<std::endl;
         switch (action)
         {
             ACTION_CASE(EKeyState::Press, GLFW_PRESS)
             ACTION_CASE(EKeyState::Repeat, GLFW_REPEAT)
+            ACTION_CASE(EKeyState::Release, GLFW_RELEASE)
         default:
             break;
         }
@@ -53,6 +55,8 @@ namespace lmcore
         switch (action)
         {
             ACTION_CASE(EKeyState::Press, GLFW_PRESS)
+            ACTION_CASE(EKeyState::Repeat, GLFW_REPEAT)
+            ACTION_CASE(EKeyState::Release, GLFW_RELEASE)
         default:
             break;
         }
@@ -161,11 +165,13 @@ namespace lmcore
     {
         clock.tick();
         // todo
-        mctx.ctrl_ptr->current_key_states.swap(mctx.ctrl_ptr->previous_key_states);
-        mctx.ctrl_ptr->current_key_states.clear();
-        mctx.ctrl_ptr->previous_mouse_states = mctx.ctrl_ptr->current_mouse_states;
-        mctx.ctrl_ptr->current_mouse_states.frame();
+        //mctx.ctrl_ptr->
+        // mctx.ctrl_ptr->current_key_states.swap(mctx.ctrl_ptr->previous_key_states);
+        // mctx.ctrl_ptr->current_key_states.clear();
+        // mctx.ctrl_ptr->previous_mouse_states = mctx.ctrl_ptr->current_mouse_states;
+        // mctx.ctrl_ptr->current_mouse_states.frame();
         glfwPollEvents();
+        mctx.ctrl_ptr->PreFrameUpdate();
         mctx.win_ptr->Update();
     }
     void Framework::Update()
@@ -173,6 +179,7 @@ namespace lmcore
     }
     void Framework::PostUpdate()
     {
+        mctx.ctrl_ptr->PostFrameUpdate();
     }
     Framework::Context Framework::GetContext()
     {
