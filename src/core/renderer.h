@@ -52,6 +52,9 @@ namespace lmcore
         explicit Renderer(std::shared_ptr<Window> wptr);
         ~Renderer();
         bool Init();
+
+        void SetCamera(std::shared_ptr<Camera> camptr);
+
         void PreUpdate(const RendererUpdateContext & ctx);
         void Update(const RendererUpdateContext & ctx);
         void PostUpdate(const RendererUpdateContext & ctx);

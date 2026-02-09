@@ -55,7 +55,7 @@ namespace lmcore
 
         bool is_set(EKeyState s)
         {
-            return (state_bit(s));
+            return (state_bit(s) & state);
         }
 
         void set(EKeyState s)
@@ -103,7 +103,7 @@ namespace lmcore
 
         void frame()
         {
-            
+
         }
     };
 

@@ -256,7 +256,6 @@ namespace lmcore
 
                 if (keys.get(EKey::W).is_set(EKeyState::Press))
                     moveForward += 1.0f;
-
                 if (keys.get(EKey::S).is_set(EKeyState::Press))
                     moveForward -= 1.0f;
                 if (keys.get(EKey::D).is_set(EKeyState::Press))

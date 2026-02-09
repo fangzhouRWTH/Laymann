@@ -134,6 +134,11 @@ namespace lmcore
             return true;
         }
 
+        void SetCamera(std::shared_ptr<Camera> camptr)
+        {
+            mCamera = camptr;
+        }
+
         bool CreateProgram(const std::string &name, const std::string &shadern)
         {
             auto shaderpath = getShaderPath();
@@ -228,94 +233,100 @@ namespace lmcore
                 bgfx::setViewRect(mViewId, 0, 0, (uint16_t)mFrameBufferWidth, (uint16_t)mFrameBufferHeight);
             }
 
-            mCurrentTime = glfwGetTime();
-            float dt = (float)(mCurrentTime - mLastTime);
-            mLastTime = mCurrentTime;
+            // mCurrentTime = glfwGetTime();
+            // float dt = (float)(mCurrentTime - mLastTime);
+            // mLastTime = mCurrentTime;
 
-            // TODO move to camera/controller
+            // // TODO move to camera/controller
             {
-                float moveForward = 0.0f;
-                float moveRight = 0.0f;
-                float moveUp = 0.0f;
+                //     float moveForward = 0.0f;
+                //     float moveRight = 0.0f;
+                //     float moveUp = 0.0f;
 
-                auto window = mWindowPtr->mWindow;
-                if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-                    moveForward += 1.0f;
-                if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-                    moveForward -= 1.0f;
-                if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-                    moveRight -= 1.0f;
-                if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-                    moveRight += 1.0f;
-                if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-                    moveUp += 1.0f;
-                if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-                    moveUp -= 1.0f;
+                //     auto window = mWindowPtr->mWindow;
+                //     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+                //         moveForward += 1.0f;
+                //     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+                //         moveForward -= 1.0f;
+                //     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+                //         moveRight -= 1.0f;
+                //     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+                //         moveRight += 1.0f;
+                //     if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+                //         moveUp += 1.0f;
+                //     if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+                //         moveUp -= 1.0f;
 
-                if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
-                {
-                    double mx, my;
-                    glfwGetCursorPos(window, &mx, &my);
+                //     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+                //     {
+                //         double mx, my;
+                //         glfwGetCursorPos(window, &mx, &my);
 
-                    if (!mController.rotating)
-                    {
-                        mController.rotating = true;
-                        mController.lastMouseX = mx;
-                        mController.lastMouseY = my;
-                    }
-                    else
-                    {
-                        double dx = mx - mController.lastMouseX;
-                        double dy = my - mController.lastMouseY;
-                        mController.lastMouseX = mx;
-                        mController.lastMouseY = my;
+                //         if (!mController.rotating)
+                //         {
+                //             mController.rotating = true;
+                //             mController.lastMouseX = mx;
+                //             mController.lastMouseY = my;
+                //         }
+                //         else
+                //         {
+                //             double dx = mx - mController.lastMouseX;
+                //             double dy = my - mController.lastMouseY;
+                //             mController.lastMouseX = mx;
+                //             mController.lastMouseY = my;
 
-                        mCamera.yaw -= (float)dx * mController.mouseSensitivity;
-                        mCamera.pitch -= (float)dy * mController.mouseSensitivity;
+                //             mCamera.yaw -= (float)dx * mController.mouseSensitivity;
+                //             mCamera.pitch -= (float)dy * mController.mouseSensitivity;
 
-                        const float limit = bx::toRad(89.5f);
-                        if (mCamera.pitch > limit)
-                            mCamera.pitch = limit;
-                        if (mCamera.pitch < -limit)
-                            mCamera.pitch = -limit;
-                    }
-                }
-                else
-                {
-                    mController.rotating = false;
-                }
+                //             const float limit = bx::toRad(89.5f);
+                //             if (mCamera.pitch > limit)
+                //                 mCamera.pitch = limit;
+                //             if (mCamera.pitch < -limit)
+                //                 mCamera.pitch = -limit;
+                //         }
+                //     }
+                //     else
+                //     {
+                //         mController.rotating = false;
+                //     }
 
-                lmcore::Vec3f forward{
-                    -std::sin(mCamera.yaw) * std::cos(mCamera.pitch),
-                    -std::cos(mCamera.yaw) * std::cos(mCamera.pitch),
-                    std::sin(mCamera.pitch),
-                };
-                forward.normalize();
+                //     lmcore::Vec3f forward{
+                //         -std::sin(mCamera.yaw) * std::cos(mCamera.pitch),
+                //         -std::cos(mCamera.yaw) * std::cos(mCamera.pitch),
+                //         std::sin(mCamera.pitch),
+                //     };
+                //     forward.normalize();
 
-                lmcore::Vec3f worldUp{0.0f, 0.0f, 1.0f};
-                lmcore::Vec3f right = forward.cross(worldUp);
-                right.normalize();
-                lmcore::Vec3f up = right.cross(forward);
+                //     lmcore::Vec3f worldUp{0.0f, 0.0f, 1.0f};
+                //     lmcore::Vec3f right = forward.cross(worldUp);
+                //     right.normalize();
+                //     lmcore::Vec3f up = right.cross(forward);
 
-                lmcore::Vec3f moveDir{
-                    forward.x() * moveForward + right.x() * moveRight + up.x() * moveUp,
-                    forward.y() * moveForward + right.y() * moveRight + up.y() * moveUp,
-                    forward.z() * moveForward + right.z() * moveRight + up.z() * moveUp};
+                //     lmcore::Vec3f moveDir{
+                //         forward.x() * moveForward + right.x() * moveRight + up.x() * moveUp,
+                //         forward.y() * moveForward + right.y() * moveRight + up.y() * moveUp,
+                //         forward.z() * moveForward + right.z() * moveRight + up.z() * moveUp};
 
-                if (moveForward != 0.0f || moveRight != 0.0f || moveUp != 0.0f)
-                {
-                    moveDir.normalize();
-                    mCamera.position = mCamera.position + moveDir * (mController.moveSpeed * dt);
-                }
+                //     if (moveForward != 0.0f || moveRight != 0.0f || moveUp != 0.0f)
+                //     {
+                //         moveDir.normalize();
+                //         mCamera.position = mCamera.position + moveDir * (mController.moveSpeed * dt);
+                //     }
 
                 float view[16];
                 float proj[16];
 
-                bx::Vec3 eye = {mCamera.position.x(), mCamera.position.y(), mCamera.position.z()};
-                bx::Vec3 at = {mCamera.position.x() + forward.x(),
-                               mCamera.position.y() + forward.y(),
-                               mCamera.position.z() + forward.z()};
-                bx::Vec3 upArr = {up.x(), up.y(), up.z()};
+                // bx::Vec3 eye = {mCamera.position.x(), mCamera.position.y(), mCamera.position.z()};
+                // bx::Vec3 at = {mCamera.position.x() + forward.x(),
+                //                mCamera.position.y() + forward.y(),
+                //                mCamera.position.z() + forward.z()};
+                // bx::Vec3 upArr = {up.x(), up.y(), up.z()};
+
+                bx::Vec3 eye = {mCamera->position.x(), mCamera->position.y(), mCamera->position.z()};
+                bx::Vec3 at = {mCamera->position.x() + mCamera->forward.x(),
+                               mCamera->position.y() + mCamera->forward.y(),
+                               mCamera->position.z() + mCamera->forward.z()};
+                bx::Vec3 upArr = {mCamera->up.x(), mCamera->up.y(), mCamera->up.z()};
 
                 bx::mtxLookAt(view, eye, at, upArr);
 
@@ -384,7 +395,8 @@ namespace lmcore
 
         bgfx::VertexLayout mPosColorLayout;
 
-        Camera mCamera;
+        // Camera mCamera;
+        std::shared_ptr<Camera> mCamera;
         Controller mController;
         double mLastTime;
         double mCurrentTime;
@@ -401,6 +413,11 @@ namespace lmcore
     bool Renderer::Init()
     {
         return impl->Init();
+    }
+
+    void Renderer::SetCamera(std::shared_ptr<Camera> camptr)
+    {
+        impl->SetCamera(camptr);
     }
 
     void Renderer::PreUpdate(const RendererUpdateContext &ctx)

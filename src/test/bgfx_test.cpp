@@ -68,6 +68,7 @@ int main()
     auto wd = fctx.win_ptr;
     auto rd = std::make_shared<lmcore::Renderer>(wd);
     rd->Init();
+    rd->SetCamera(framework.GetContext().cam_ptr);
     auto phy = std::make_shared<lmcore::Simulator>();
     phy->Init();
 
