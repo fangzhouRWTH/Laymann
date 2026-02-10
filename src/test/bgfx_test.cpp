@@ -235,8 +235,8 @@ int main()
     auto planh = phy->RegisterPhysicalObject({.xyz = {100.f, 100.f, 1.f}}, fiso, 0.f);
     auto cube = rd->CreateRenderObject(cubev.data(), 36u);
 
-    uint32_t x = 1u;
-    uint32_t y = 1u;
+    uint32_t x = 10u;
+    uint32_t y = 10u;
     uint32_t z = 5u;
 
     float distance = 0.8f;

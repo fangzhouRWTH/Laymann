@@ -1,0 +1,118 @@
+{
+  "meta": {
+    "units": "m",
+    "input_file": "l_singleStudio01.json",
+    "translation_offset_applied_to_make_plan_origin_at_0_0": [
+      6.33,
+      -1.86
+    ],
+    "note": "center_m_translated are in translated coordinates; center_m_input are in original coordinates as provided in the input JSON."
+  },
+  "items": [
+    {
+      "id": "sofa_0",
+      "type": "sofa_3_seat",
+      "room": "bedroom_0/0",
+      "size_m": {
+        "L": 2.0,
+        "W": 0.9,
+        "H": 0.85
+      },
+      "orientation_deg": 90,
+      "center_m_translated": [
+        0.45,
+        1.6,
+        0.0
+      ],
+      "center_m_input": [
+        -5.88,
+        3.46,
+        0.0
+      ]
+    },
+    {
+      "id": "tv_console_0",
+      "type": "tv_console",
+      "room": "bedroom_0/0",
+      "size_m": {
+        "L": 1.6,
+        "W": 0.45,
+        "H": 0.5
+      },
+      "orientation_deg": 90,
+      "center_m_translated": [
+        2.435,
+        1.6,
+        0.0
+      ],
+      "center_m_input": [
+        -3.895,
+        3.46,
+        0.0
+      ]
+    },
+    {
+      "id": "dining_table_0",
+      "type": "dining_table_4p",
+      "room": "bedroom_0/0",
+      "size_m": {
+        "L": 1.2,
+        "W": 0.75,
+        "H": 0.75
+      },
+      "orientation_deg": 0,
+      "center_m_translated": [
+        1.8,
+        0.6,
+        0.0
+      ],
+      "center_m_input": [
+        -4.53,
+        2.46,
+        0.0
+      ]
+    },
+    {
+      "id": "toilet_0",
+      "type": "toilet",
+      "room": "bathroom_0/0",
+      "size_m": {
+        "L": 0.7,
+        "W": 0.38,
+        "H": 0.75
+      },
+      "orientation_deg": 90,
+      "center_m_translated": [
+        3.95,
+        1.85,
+        0.0
+      ],
+      "center_m_input": [
+        -2.38,
+        3.71,
+        0.0
+      ]
+    },
+    {
+      "id": "shower_0",
+      "type": "shower_square",
+      "room": "bathroom_0/0",
+      "size_m": {
+        "L": 0.9,
+        "W": 0.9,
+        "H": 2.1
+      },
+      "orientation_deg": 0,
+      "center_m_translated": [
+        3.69,
+        2.8,
+        0.0
+      ],
+      "center_m_input": [
+        -2.64,
+        4.66,
+        0.0
+      ]
+    }
+  ]
+}
