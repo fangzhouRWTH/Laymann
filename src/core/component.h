@@ -15,6 +15,19 @@ namespace lmcore
         bool line = false;
     };
 
+    struct PhysicalVisualComponent
+    {
+        //bool isValid = true;
+        RenderObjectHandle handle;
+        //std::string program;
+        //bool line = false;
+    };
+
+    struct FieldVisualComponent
+    {
+        RenderObjectHandle handle;
+    };
+
     struct PhysicalComponent
     {
         bool isValid = true;

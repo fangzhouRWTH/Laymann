@@ -37,14 +37,23 @@ namespace lmcore
     class ECSRenderSystem final : public ECSSystem
     {
     public:
-        ECSRenderSystem(std::shared_ptr<Renderer> renderer) : mRenderer(renderer) {
-
-                                                              };
+        ECSRenderSystem(std::shared_ptr<Renderer> renderer) : mRenderer(renderer) {};
 
         virtual void PreUpdate(ECSUpdateContext context);
         virtual void Update(ECSUpdateContext context);
         virtual void PostUpdate(ECSUpdateContext context);
+    private:
+        std::shared_ptr<Renderer> mRenderer;
+    };
 
+    class ECSPhysicalVisualizationSystem final : public ECSSystem
+    {
+    public:
+        ECSPhysicalVisualizationSystem(std::shared_ptr<Renderer> renderer) : mRenderer(renderer) {};
+        
+        virtual void PreUpdate(ECSUpdateContext context);
+        virtual void Update(ECSUpdateContext context);
+        virtual void PostUpdate(ECSUpdateContext context);
     private:
         std::shared_ptr<Renderer> mRenderer;
     };
@@ -64,15 +73,15 @@ namespace lmcore
 
     class ECSCameraControlSystem : public ECSSystem
     {
-        public:
-            ECSCameraControlSystem(std::shared_ptr<Control> ctrl):ctrlptr(ctrl)
-            {
+    public:
+        ECSCameraControlSystem(std::shared_ptr<Control> ctrl) : ctrlptr(ctrl)
+        {
+        }
 
-            }
+        virtual void Update(ECSUpdateContext context);
 
-            virtual void Update(ECSUpdateContext context);
-        private:
-            std::shared_ptr<Control> ctrlptr = nullptr;
+    private:
+        std::shared_ptr<Control> ctrlptr = nullptr;
     };
 
     class ECSManager

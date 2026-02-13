@@ -21,6 +21,7 @@
 #include "core/geometry.h"
 #include "core/ecs.h"
 #include "core/engine.h"
+#include "core/space_analyse.h"
 
 #define GLFW_EXPOSE_NATIVE_X11
 #include <GLFW/glfw3native.h>
@@ -78,6 +79,8 @@ int main()
     ecs->AddSystem(ecs_phy_sys);
     std::shared_ptr<lmcore::ECSRenderSystem> ecs_rd_sys = std::make_shared<lmcore::ECSRenderSystem>(rd);
     ecs->AddSystem(ecs_rd_sys);
+    std::shared_ptr<lmcore::ECSPhysicalVisualizationSystem> ecs_phy_vis_sys = std::make_shared<lmcore::ECSPhysicalVisualizationSystem>(rd);
+    ecs->AddSystem(ecs_phy_vis_sys);
     std::shared_ptr<lmcore::ECSCameraControlSystem> ecs_camctrl_sys = std::make_shared<lmcore::ECSCameraControlSystem>(framework.GetContext().ctrl_ptr);
     ecs->AddSystem(ecs_camctrl_sys);
 
@@ -177,34 +180,14 @@ int main()
             auto rh = rd->CreateRenderObject(v.data(), v.size());
             auto ph = phy->RegisterPhysicalObject(c.bbox, c.pose, 0.f);
 
-            f.h = rh;
-            f.transform = c.pose;
-            f.line = true;
-            f.p = "grid";
-
-            lmcore::RenderComponent rc = {.handle = rh, .program = "grid", .line = true};
+            lmcore::PhysicalVisualComponent rc = {.handle = rh};
             lmcore::PhysicalComponent pc = {.handle = ph};
 
             auto et = ecs->Create();
             ecs->Add(et, rc);
-            ecs->Add(et, lmcore::PositionComponent{});
-            ecs->Add(et, pc);
+            ecs->Add(et, lmcore::PositionComponent{.iso = c.pose});
         }
     }
-
-    for (auto &f : fp_0.floors)
-    {
-        for (auto &ff : f.data.baseForm)
-        {
-            temp_walls.push_back(ff);
-        }
-    }
-
-    auto wall_v = rd->CreateRenderObject(temp_walls.data(), temp_walls.size());
-    lmcore::RenderComponent rc_wall = {.handle = wall_v, .program = "basic", .line = false};
-    auto et_wall = ecs->Create();
-    ecs->Add(et_wall, lmcore::PositionComponent{});
-    ecs->Add(et_wall, rc_wall);
 
     auto wall_line_v = rd->CreateRenderObject(fpline_vertices.data(), fpline_vertices.size());
     lmcore::RenderComponent rc_wall_line = {.handle = wall_line_v, .program = "grid", .line = true};
@@ -235,38 +218,82 @@ int main()
     auto planh = phy->RegisterPhysicalObject({.xyz = {100.f, 100.f, 1.f}}, fiso, 0.f);
     auto cube = rd->CreateRenderObject(cubev.data(), 36u);
 
+    for (auto &f : fp_0.floors)
+    {
+        lmcore::Area2D_XY area;
+        for (auto &ff : f.data.baseForm)
+        {
+            temp_walls.push_back(ff);
+            area.triangle_points.push_back({ff.x, ff.y, ff.z});
+        }
+        
+        auto field = lmcore::DiscreteSpaceField::Create(area,0.2f);
+
+        field.GenerateVertices();
+        auto & vs = field.GetVertices();
+
+        auto vh = rd->CreateRenderObject(vs.data(),vs.size());
+
+        lmcore::Iso3f iso = lmcore::Iso3f::Identity();
+        //iso.translate(s.world_pos);
+        lmcore::RenderComponent rc = {.handle = vh, .program = "basic", .line = false};
+
+        auto et_cube = ecs->Create();
+        ecs->Add(et_cube, lmcore::PositionComponent{.iso = iso});
+        ecs->Add(et_cube, rc);
+
+        // auto &samples = field.GetSamples();
+        // for (auto s : samples)
+        // {
+        //     lmcore::Iso3f iso = lmcore::Iso3f::Identity();
+        //     iso.translate(s.world_pos);
+        //     float cubescale = 0.05f;
+        //     lmcore::RenderComponent rc = {.handle = cube, .program = "basic", .line = false};
+
+        //     auto et_cube = ecs->Create();
+        //     ecs->Add(et_cube, lmcore::PositionComponent{.iso = iso});
+        //     ecs->Add(et_cube, rc);
+        // }
+    }
+
+    auto wall_v = rd->CreateRenderObject(temp_walls.data(), temp_walls.size());
+    lmcore::RenderComponent rc_wall = {.handle = wall_v, .program = "basic", .line = false};
+    auto et_wall = ecs->Create();
+    ecs->Add(et_wall, lmcore::PositionComponent{});
+    ecs->Add(et_wall, rc_wall);
+
     uint32_t x = 10u;
     uint32_t y = 10u;
     uint32_t z = 5u;
 
     float distance = 0.8f;
 
-    for (auto _x = 0; _x < x; _x++)
-    {
-        for (auto _y = 0; _y < y; _y++)
-        {
-            for (auto _z = 0; _z < z; _z++)
-            {
-                lmcore::Iso3f iso = lmcore::Iso3f::Identity();
-                iso.translate(lmcore::Vec3f{
-                    (_x - x * 0.5f) * distance,
-                    (_y - y * 0.5f) * distance,
-                    (_z - z * 0.5f) * distance + 20.f});
-                auto phcube = phy->RegisterPhysicalObject({.xyz = {cubescale * 0.5f, cubescale * 0.5f, cubescale * 0.5f}}, iso, 1.f);
-                lmcore::RenderComponent rc = {.handle = cube, .program = "basic", .line = false};
-                lmcore::PhysicalComponent pc = {.handle = phcube};
+    // for (auto _x = 0; _x < x; _x++)
+    // {
+    //     for (auto _y = 0; _y < y; _y++)
+    //     {
+    //         for (auto _z = 0; _z < z; _z++)
+    //         {
+    //             lmcore::Iso3f iso = lmcore::Iso3f::Identity();
+    //             iso.translate(lmcore::Vec3f{
+    //                 (_x - x * 0.5f) * distance,
+    //                 (_y - y * 0.5f) * distance,
+    //                 (_z - z * 0.5f) * distance + 20.f});
+    //             auto phcube = phy->RegisterPhysicalObject({.xyz = {cubescale * 0.5f, cubescale * 0.5f, cubescale * 0.5f}}, iso, 1.f);
+    //             lmcore::RenderComponent rc = {.handle = cube, .program = "basic", .line = false};
+    //             lmcore::PhysicalComponent pc = {.handle = phcube};
 
-                auto et_cube = ecs->Create();
-                ecs->Add(et_cube, lmcore::PositionComponent{});
-                ecs->Add(et_cube, rc);
-                ecs->Add(et_cube, pc);
-            }
-        }
-    }
+    //             auto et_cube = ecs->Create();
+    //             ecs->Add(et_cube, lmcore::PositionComponent{});
+    //             ecs->Add(et_cube, rc);
+    //             ecs->Add(et_cube, pc);
+    //         }
+    //     }
+    // }
 
     auto ecctrl = ecs->Create();
-    ecs->Add(ecctrl,lmcore::CameraComponent{.camera = framework.GetContext().cam_ptr});
-    ecs->Add(ecctrl,lmcore::PositionComponent{});
+    ecs->Add(ecctrl, lmcore::CameraComponent{.camera = framework.GetContext().cam_ptr});
+    ecs->Add(ecctrl, lmcore::PositionComponent{});
 
     while (!framework.ShouldClose())
     {
@@ -275,13 +302,19 @@ int main()
         framework.PreUpdate();
         framework.GetFrameSize(wd, ht);
         float dt = framework.GetDeltaTime();
+        lmcore::RendererUpdateContext ctx;
+        ctx.width = wd;
+        ctx.height = ht;
+        rd->PreUpdate(ctx);
         ecs->PreUpdateSystems(wd, ht);
 
         framework.Update();
         ecs->UpdateSystems(dt);
+        rd->Update({});
 
         framework.PostUpdate();
         ecs->PostUpdateSystems();
+        rd->PostUpdate({});
     }
 
     rd->Destroy();

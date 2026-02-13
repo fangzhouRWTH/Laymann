@@ -2,26 +2,10 @@
 #include "core/math.h"
 
 #include "entt/entt.hpp"
+#include "core/ecs_impl.h"
 
 namespace lmcore
 {
-    struct position
-    {
-        float x;
-        float y;
-    };
-
-    struct velocity
-    {
-        float dx;
-        float dy;
-    };
-
-    struct ECSRegistry
-    {
-        entt::registry reg;
-    };
-
     struct EntityMapper
     {
         EntityHandle add(entt::entity ent)
@@ -176,16 +160,10 @@ namespace lmcore
 
     void ECSRenderSystem::PreUpdate(ECSUpdateContext context)
     {
-        RendererUpdateContext ctx;
-        ctx.width = context.frameBufferWidth;
-        ctx.height = context.frameBufferHeight;
-        mRenderer->PreUpdate(ctx);
     }
 
     void ECSRenderSystem::Update(ECSUpdateContext context)
     {
-        // mSimulator->Update(context.deltaTime);
-
         auto &reg = context.registry->reg;
         auto view = reg.view<RenderComponent, PositionComponent>();
 
@@ -205,14 +183,39 @@ namespace lmcore
         }
 
         mRenderer->PushFrameObjects(objs);
-
-        mRenderer->Update({});
     }
 
     void ECSRenderSystem::PostUpdate(ECSUpdateContext context)
     {
-        RendererUpdateContext ctx;
-        mRenderer->PostUpdate(ctx);
+    }
+
+    void ECSPhysicalVisualizationSystem::PreUpdate(ECSUpdateContext context)
+    {
+    }
+    void ECSPhysicalVisualizationSystem::Update(ECSUpdateContext context)
+    {
+        auto &reg = context.registry->reg;
+        auto view = reg.view<PhysicalVisualComponent, PositionComponent>();
+
+        std::vector<FrameObject> objs;
+
+        for (auto entity : view)
+        {
+            auto &rc = view.get<PhysicalVisualComponent>(entity);
+            auto &pos = view.get<PositionComponent>(entity);
+
+            FrameObject fo;
+            fo.h = rc.handle;
+            fo.line = true;
+            fo.p = "grid";
+            fo.transform = pos.iso;
+            objs.push_back(fo);
+        }
+
+        mRenderer->PushFrameObjects(objs);
+    }
+    void ECSPhysicalVisualizationSystem::PostUpdate(ECSUpdateContext context)
+    {
     }
 
     void ECSPhysicSystem::Update(ECSUpdateContext context)
@@ -237,7 +240,7 @@ namespace lmcore
         auto &reg = context.registry->reg;
         auto view = reg.view<CameraComponent, PositionComponent>();
 
-        //auto keys = ctrlptr->current_key_states;
+        // auto keys = ctrlptr->current_key_states;
         auto keys = ctrlptr->temporal_deduct_key_states;
         auto cmst = ctrlptr->current_mouse_states;
         auto lmst = ctrlptr->previous_mouse_states;

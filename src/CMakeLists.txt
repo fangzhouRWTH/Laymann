@@ -9,6 +9,8 @@ add_executable(core
         ${CMAKE_SOURCE_DIR}/src/core/simulator.cpp
         ${CMAKE_SOURCE_DIR}/src/core/geometry.cpp
         ${CMAKE_SOURCE_DIR}/src/core/ecs.cpp
+        ${CMAKE_SOURCE_DIR}/src/core/ecs_systems.cpp
+        ${CMAKE_SOURCE_DIR}/src/core/space_analyse.cpp
         ${CMAKE_SOURCE_DIR}/src/core/framework.cpp
     #PUBLIC       
 )
@@ -85,6 +87,8 @@ bgfx_compile_shader(VS_BASIC_BIN v vs_basic.sc)
 bgfx_compile_shader(FS_BASIC_BIN f fs_basic.sc)
 bgfx_compile_shader(VS_GRID_BIN  v vs_grid.sc)
 bgfx_compile_shader(FS_GRID_BIN  f fs_grid.sc)
+bgfx_compile_shader(VS_FIELD_BIN v vs_field.sc)
+bgfx_compile_shader(FS_FIELD_BIN f fs_field.sc)
 
 add_custom_target(bgfx_shaders
     DEPENDS
@@ -92,6 +96,8 @@ add_custom_target(bgfx_shaders
         ${FS_BASIC_BIN}
         ${VS_GRID_BIN}
         ${FS_GRID_BIN}
+        ${VS_FIELD_BIN}
+        ${FS_FIELD_BIN}
 )
 
 add_dependencies(bgfx_shaders shaderc)
