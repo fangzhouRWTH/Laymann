@@ -4,6 +4,8 @@
 
 namespace lmcore
 {
+    typedef uint8_t byte;
+
     typedef Eigen::Vector2f Vec2f;
     typedef Eigen::Vector3f Vec3f;
     typedef Eigen::Vector4f Vec4f;

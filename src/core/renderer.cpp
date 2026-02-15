@@ -90,6 +90,20 @@ namespace lmcore
         std::vector<FrameObject> objs;
     };
 
+    // TODO
+    struct UploadBufferCache
+    {
+        uint32_t current_offset = 0;
+        std::vector<byte> buffer;
+
+        void* push(void * data, uint32_t size)
+        {
+            uint32_t csize = buffer.size();
+            uint32_t new_offset = current_offset + size;
+            //if (new_offset > )
+        }
+    };
+
     class Renderer::Impl
     {
     public:

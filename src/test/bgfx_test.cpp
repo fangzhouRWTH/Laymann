@@ -218,6 +218,8 @@ int main()
     auto planh = phy->RegisterPhysicalObject({.xyz = {100.f, 100.f, 1.f}}, fiso, 0.f);
     auto cube = rd->CreateRenderObject(cubev.data(), 36u);
 
+
+    lmcore::DiscreteSpaceField field;
     for (auto &f : fp_0.floors)
     {
         lmcore::Area2D_XY area;
@@ -227,20 +229,21 @@ int main()
             area.triangle_points.push_back({ff.x, ff.y, ff.z});
         }
         
-        auto field = lmcore::DiscreteSpaceField::Create(area,0.2f);
+        field = lmcore::DiscreteSpaceField::Create(area,0.2f);
 
         field.GenerateVertices();
-        auto & vs = field.GetVertices();
+        std::vector<lmcore::PosColorVertex> & vs = field.GetVertices();
 
         auto vh = rd->CreateRenderObject(vs.data(),vs.size());
 
         lmcore::Iso3f iso = lmcore::Iso3f::Identity();
         //iso.translate(s.world_pos);
         lmcore::RenderComponent rc = {.handle = vh, .program = "basic", .line = false};
+        //lmcore::FieldVisualComponent
 
-        auto et_cube = ecs->Create();
-        ecs->Add(et_cube, lmcore::PositionComponent{.iso = iso});
-        ecs->Add(et_cube, rc);
+        auto et_field = ecs->Create();
+        ecs->Add(et_field, lmcore::PositionComponent{.iso = iso});
+        ecs->Add(et_field, rc);
 
         // auto &samples = field.GetSamples();
         // for (auto s : samples)

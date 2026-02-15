@@ -192,6 +192,7 @@ namespace lmcore
     void ECSPhysicalVisualizationSystem::PreUpdate(ECSUpdateContext context)
     {
     }
+    
     void ECSPhysicalVisualizationSystem::Update(ECSUpdateContext context)
     {
         auto &reg = context.registry->reg;
