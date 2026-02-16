@@ -99,8 +99,9 @@ int main()
     // lmcore::create_vertices_indices_of_room_geometry(fp_0,fpline_vertices,fpline_indices);
     lmcore::create_vertices_indices_from_merger(merger, fpline_vertices);
 
+    //todo
     std::vector<lmcore::PosColorVertex> temp_walls;
-    std::vector<std::vector<lmcore::PosColorVertex>> vs;
+    //std::vector<std::vector<lmcore::PosColorVertex>> vs;
     std::vector<lmcore::FrameObject> fos;
     bool has = false;
     for (auto &w : fp_0.walls)
@@ -145,9 +146,10 @@ int main()
             auto _p3 = p3;
             _p3.y = y;
 
-            vs.emplace_back();
+            //vs.emplace_back();
             fos.emplace_back();
-            auto &v = vs.back();
+            //auto &v = vs.back();
+            auto v = std::vector<lmcore::PosColorVertex>();
             auto &f = fos.back();
 
             v.push_back(p2);
@@ -218,8 +220,6 @@ int main()
     auto planh = phy->RegisterPhysicalObject({.xyz = {100.f, 100.f, 1.f}}, fiso, 0.f);
     auto cube = rd->CreateRenderObject(cubev.data(), 36u);
 
-
-    lmcore::DiscreteSpaceField field;
     for (auto &f : fp_0.floors)
     {
         lmcore::Area2D_XY area;
@@ -229,7 +229,7 @@ int main()
             area.triangle_points.push_back({ff.x, ff.y, ff.z});
         }
         
-        field = lmcore::DiscreteSpaceField::Create(area,0.2f);
+        lmcore::DiscreteSpaceField field = lmcore::DiscreteSpaceField::Create(area,0.2f);
 
         field.GenerateVertices();
         std::vector<lmcore::PosColorVertex> & vs = field.GetVertices();

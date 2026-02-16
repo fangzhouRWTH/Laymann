@@ -90,20 +90,6 @@ namespace lmcore
         std::vector<FrameObject> objs;
     };
 
-    // TODO
-    struct UploadBufferCache
-    {
-        uint32_t current_offset = 0;
-        std::vector<byte> buffer;
-
-        void* push(void * data, uint32_t size)
-        {
-            uint32_t csize = buffer.size();
-            uint32_t new_offset = current_offset + size;
-            //if (new_offset > )
-        }
-    };
-
     class Renderer::Impl
     {
     public:
@@ -178,7 +164,7 @@ namespace lmcore
 
         RenderObjectHandle CreateRenderObject(const lmcore::PosColorVertex *const vertices, uint32_t count)
         {
-            auto vbh = bgfx::createVertexBuffer(bgfx::makeRef(vertices, count * sizeof(lmcore::PosColorVertex)), mPosColorLayout);
+            auto vbh = bgfx::createVertexBuffer(bgfx::copy(vertices, count * sizeof(lmcore::PosColorVertex)), mPosColorLayout);
             RObject obj{.vbh = vbh};
             return mRenderObjects.add(obj);
         }
