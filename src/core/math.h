@@ -71,4 +71,16 @@ namespace lmcore
         std::cout << "[" << mat.col(0)[3] << "," << mat.col(1)[3] << "," << mat.col(2)[3] << "," << mat.col(3)[3] << "]" << std::endl;
     }
 
+    inline void printVec3(const std::string &name, const Vec3f &vec)
+    {
+        std::cout << name << std::endl;
+        std::cout << "[" << vec.x() << "," << vec.y() << "," << vec.z() << "]" << std::endl;
+    }
+
+    inline void printVec4(const std::string &name, const Vec4f &vec)
+    {
+        std::cout << name << std::endl;
+        std::cout << "[" << vec.x() << "," << vec.y() << "," << vec.z() << "," << vec.w() << "]" << std::endl;
+    }
+
 }

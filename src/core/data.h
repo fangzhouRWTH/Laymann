@@ -9,6 +9,12 @@
 
 namespace lmcore
 {
+    enum class TextureFormat
+    {
+        R8,
+        
+    };
+
     struct PosColorVertex
     {
         float x = 0.f;
@@ -21,6 +27,8 @@ namespace lmcore
         float g = 1.f;
         float b = 1.f;
         float a = 1.f;
+        float u = 0.0;
+        float v = 0.0;
     };
 
     struct BBox

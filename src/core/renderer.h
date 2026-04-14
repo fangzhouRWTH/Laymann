@@ -28,6 +28,7 @@ namespace lmcore
 {
     // typedef uint32_t RenderProgramHandle;
     typedef uint32_t RenderObjectHandle;
+    typedef uint32_t RenderTextureHandle;
 
     // TODO sort mechanism
     struct FrameObject
@@ -62,8 +63,11 @@ namespace lmcore
         bool CreateProgram(const std::string &name, const std::string &shadern);
         void PushFrameObject(FrameObject obj);
         void PushFrameObjects(const std::vector<FrameObject> &objs);
-        RenderObjectHandle CreateRenderObject(const lmcore::PosColorVertex *const vertices, uint32_t count);
 
+        RenderObjectHandle CreateRenderObject(const lmcore::PosColorVertex *const vertices, uint32_t count);
+        
+        RenderTextureHandle CreateTexture2D(const uint32_t width, const uint32_t height, TextureFormat format, void * data);
+        void UpdateTexture2D(const RenderTextureHandle handle, void * data);
     private:
         class Impl;
         std::unique_ptr<Impl> impl;

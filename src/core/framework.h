@@ -35,14 +35,14 @@ namespace lmcore
 
     struct Camera
     {
-        Vec3f position = {-10.f, -10.f, 12.5f};
+        Vec3f position = {0.f, 0.f, 0.0f};
         Vec3f forward;
         Vec3f up;
         Vec3f right;
         Vec3f worldUp;
         Vec3f moveDir;
-        float yaw = 4.f;
-        float pitch = -0.7f;
+        float yaw = 0.f;
+        float pitch = 0.f;
     };
 
     class Clock

@@ -2,7 +2,7 @@
 #target_sources()
 add_executable(core
     #PRIVATE
-        ${CMAKE_SOURCE_DIR}/src/test/bgfx_test.cpp
+        ${CMAKE_SOURCE_DIR}/src/citygen/gen_main.cpp
         ${CMAKE_SOURCE_DIR}/src/system/files.cpp
         ${CMAKE_SOURCE_DIR}/src/core/renderer.cpp
         ${CMAKE_SOURCE_DIR}/src/utils/planLoader.cpp
@@ -90,6 +90,9 @@ bgfx_compile_shader(FS_GRID_BIN  f fs_grid.sc)
 bgfx_compile_shader(VS_FIELD_BIN v vs_field.sc)
 bgfx_compile_shader(FS_FIELD_BIN f fs_field.sc)
 
+bgfx_compile_shader(VS_BASIC_TEX_BIN v vs_basic_tex.sc)
+bgfx_compile_shader(FS_BASIC_TEX_BIN f fs_basic_tex.sc)
+
 add_custom_target(bgfx_shaders
     DEPENDS
         ${VS_BASIC_BIN}
@@ -98,6 +101,8 @@ add_custom_target(bgfx_shaders
         ${FS_GRID_BIN}
         ${VS_FIELD_BIN}
         ${FS_FIELD_BIN}
+        ${VS_BASIC_TEX_BIN}
+        ${FS_BASIC_TEX_BIN}
 )
 
 add_dependencies(bgfx_shaders shaderc)

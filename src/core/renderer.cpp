@@ -48,6 +48,15 @@ namespace lmcore
         bool indexDraw = false;
     };
 
+    struct RTexture
+    {
+        bool destroyed = false;
+        bgfx::TextureHandle th;
+        uint32_t width;
+        uint32_t height;
+        bgfx::TextureFormat::Enum format;
+    };
+
     struct RenderObjectContainer
     {
         RenderObjectHandle add(RObject obj)
@@ -82,6 +91,45 @@ namespace lmcore
         }
 
         std::vector<RObject> robjs;
+    };
+
+    struct RenderTextureContainer
+    {
+        RenderTextureHandle add(RTexture tx)
+        {
+            rts.push_back(tx);
+            return RenderObjectHandle(rts.size() - 1);
+        }
+
+        RTexture get(RenderTextureHandle handle)
+        {
+            assert(handle < rts.size());
+            auto o = rts[handle];
+            return o;
+        }
+
+        void destroy(RenderObjectHandle handle)
+        {
+            assert(handle < rts.size());
+            auto &o = rts[handle];
+            if (o.destroyed)
+                return;
+            bgfx::destroy(o.th);
+            o.destroyed = true;
+        }
+
+        void destroy()
+        {
+            for (auto &o : rts)
+            {
+                if (o.destroyed)
+                    continue;
+                bgfx::destroy(o.th);
+                o.destroyed = true;
+            }
+        }
+
+        std::vector<RTexture> rts;
     };
 
     // TODO
@@ -124,6 +172,7 @@ namespace lmcore
                 .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
                 .add(bgfx::Attrib::Normal, 3, bgfx::AttribType::Float, true)
                 .add(bgfx::Attrib::Color0, 4, bgfx::AttribType::Float, true)
+                .add(bgfx::Attrib::TexCoord0, 2, bgfx::AttribType::Float, true)
                 .end();
 
             // TODO move out timer
@@ -162,11 +211,64 @@ namespace lmcore
             return true;
         }
 
+        // to do add remove
         RenderObjectHandle CreateRenderObject(const lmcore::PosColorVertex *const vertices, uint32_t count)
         {
             auto vbh = bgfx::createVertexBuffer(bgfx::copy(vertices, count * sizeof(lmcore::PosColorVertex)), mPosColorLayout);
+            assert(bgfx::isValid(vbh));
             RObject obj{.vbh = vbh};
             return mRenderObjects.add(obj);
+        }
+
+        RenderTextureHandle CreateTexture2D(const uint32_t width, const uint32_t height, TextureFormat format, void *data)
+        {
+            auto tf = bgfx::TextureFormat::RGBA32F;
+            switch (format)
+            {
+            case lmcore::TextureFormat::R8:
+                tf = bgfx::TextureFormat::R8;
+                break;
+            default:
+                assert(false);
+            }
+
+            bgfx::TextureHandle tex = bgfx::createTexture2D(
+                width,
+                height,
+                false, // no mip
+                1,     // layers
+                tf,
+                BGFX_TEXTURE_NONE,
+                bgfx::copy(data, width * height));
+
+            assert(bgfx::isValid(tex));
+            RTexture t{
+                .th = tex,
+                .width = width,
+                .height = height,
+                .format = tf,
+            };
+            return mRenderTextures.add(t);
+        }
+
+        void RemoveTexture(RenderTextureHandle handle)
+        {
+            mRenderTextures.destroy(handle);
+        }
+
+        void UpdateTexture2D(RenderTextureHandle handle, void * data)
+        {
+            RTexture t = mRenderTextures.get(handle);
+            if(t.destroyed)
+                return;
+            assert(bgfx::isValid(t.th));
+            bgfx::updateTexture2D(
+                t.th,
+                0, // mip
+                0, // layer
+                0, 0,
+                t.width, t.height,
+                bgfx::copy(data, t.width * t.height));
         }
 
         void PushFrameObject(FrameObject obj)
@@ -219,6 +321,7 @@ namespace lmcore
             }
 
             mRenderObjects.destroy();
+            mRenderTextures.destroy();
             bgfx::shutdown();
         }
 
@@ -242,6 +345,10 @@ namespace lmcore
                                mCamera->position.y() + mCamera->forward.y(),
                                mCamera->position.z() + mCamera->forward.z()};
                 bx::Vec3 upArr = {mCamera->up.x(), mCamera->up.y(), mCamera->up.z()};
+
+                // printVec3("eye",{eye.x,eye.y,eye.z});
+                // printVec3("at",{at.x,at.y,at.z});
+                // printVec3("upArr",{upArr.x,upArr.y,upArr.z});
 
                 bx::mtxLookAt(view, eye, at, upArr);
 
@@ -302,6 +409,7 @@ namespace lmcore
 
         FrameObjectContainer mFrameObjects;
         RenderObjectContainer mRenderObjects;
+        RenderTextureContainer mRenderTextures;
         std::shared_ptr<Window> mWindowPtr = nullptr;
 
         uint32_t mFrameBufferWidth = 0u;
@@ -373,5 +481,16 @@ namespace lmcore
     RenderObjectHandle Renderer::CreateRenderObject(const lmcore::PosColorVertex *const vertices, uint32_t count)
     {
         return impl->CreateRenderObject(vertices, count);
+    }
+
+    RenderTextureHandle Renderer::CreateTexture2D(const uint32_t width, const uint32_t height, TextureFormat format, void *data)
+    {
+        return impl->CreateTexture2D(width,height,format,data);
+    }
+
+    void Renderer::UpdateTexture2D(const RenderTextureHandle handle, void *data)
+    {
+        impl->UpdateTexture2D(handle, data);
+        return;
     }
 }

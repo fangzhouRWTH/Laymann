@@ -192,7 +192,7 @@ namespace lmcore
     void ECSPhysicalVisualizationSystem::PreUpdate(ECSUpdateContext context)
     {
     }
-    
+
     void ECSPhysicalVisualizationSystem::Update(ECSUpdateContext context)
     {
         auto &reg = context.registry->reg;
@@ -264,9 +264,9 @@ namespace lmcore
                 if (keys.get(EKey::S).is_set(EKeyTemporalState::Down))
                     moveForward -= 1.0f;
                 if (keys.get(EKey::D).is_set(EKeyTemporalState::Down))
-                    moveRight -= 1.0f;
-                if (keys.get(EKey::A).is_set(EKeyTemporalState::Down))
                     moveRight += 1.0f;
+                if (keys.get(EKey::A).is_set(EKeyTemporalState::Down))
+                    moveRight -= 1.0f;
                 if (keys.get(EKey::E).is_set(EKeyTemporalState::Down))
                     moveUp += 1.0f;
                 if (keys.get(EKey::Q).is_set(EKeyTemporalState::Down))
@@ -277,7 +277,7 @@ namespace lmcore
                     double dx = cmst.lastMouseX - lmst.lastMouseX;
                     double dy = cmst.lastMouseY - lmst.lastMouseY;
 
-                    cam.camera->yaw -= (float)dx * ctrlptr->mouseSensitivity;
+                    cam.camera->yaw += (float)dx * ctrlptr->mouseSensitivity;
                     cam.camera->pitch -= (float)dy * ctrlptr->mouseSensitivity;
 
                     const float limit = bx::toRad(89.5f);
@@ -287,17 +287,23 @@ namespace lmcore
                         cam.camera->pitch = -limit;
                 }
 
+                cam.camera->worldUp = {0.0f, 0.0f, 1.0f};
+
                 cam.camera->forward = {
                     -std::sin(cam.camera->yaw) * std::cos(cam.camera->pitch),
-                    -std::cos(cam.camera->yaw) * std::cos(cam.camera->pitch),
+                    std::cos(cam.camera->yaw) * std::cos(cam.camera->pitch),
                     std::sin(cam.camera->pitch),
                 };
                 cam.camera->forward.normalize();
 
-                cam.camera->worldUp = {0.0f, 0.0f, 1.0f};
                 cam.camera->right = cam.camera->forward.cross(cam.camera->worldUp);
                 cam.camera->right.normalize();
                 cam.camera->up = cam.camera->right.cross(cam.camera->forward);
+                cam.camera->up.normalize();
+
+                // printVec3("up", cam.camera->up * moveUp);
+                // printVec3("forward", cam.camera->forward * moveForward);
+                // printVec3("right", cam.camera->right * moveRight);
 
                 cam.camera->moveDir = {
                     cam.camera->forward.x() * moveForward + cam.camera->right.x() * moveRight + cam.camera->up.x() * moveUp,
@@ -310,7 +316,6 @@ namespace lmcore
                     cam.camera->position = cam.camera->position + cam.camera->moveDir * (ctrlptr->moveSpeed * dt);
                 }
 
-                // pos.iso =
             }
         }
     }

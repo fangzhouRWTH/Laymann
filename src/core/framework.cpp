@@ -22,7 +22,6 @@ namespace lmcore
         auto &ks = ctx->ctrl_ptr->current_key_states;
         KeyState s;
 
-        std::cout<<"x"<<std::endl;
         switch (action)
         {
             ACTION_CASE(EKeyState::Press, GLFW_PRESS)
