@@ -28,7 +28,7 @@ set(ENTT_BUILD_EXAMPLE OFF CACHE BOOL "" FORCE)
 set(ENTT_BUILD_LIB OFF CACHE BOOL "" FORCE)
 set(ENTT_BUILD_SNAPSHOT OFF CACHE BOOL "" FORCE)
 
-
 add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/bullet3)
+
 add_subdirectory(${CMAKE_SOURCE_DIR}/src)
 add_subdirectory(${CMAKE_SOURCE_DIR}/unit_test)

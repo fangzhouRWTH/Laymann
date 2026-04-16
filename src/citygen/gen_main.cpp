@@ -147,12 +147,16 @@ int main()
     PerlinNoise pnoise;
     uint32_t pn_size = 1024u;
     float field_size = 10.f;
-    float height_scale = 0.2f;
-    float amplitude = 1.0f;
+    float height_scale = 0.5f;
+
     int octave = 6;
-    float frequency = 0.5f;
+    float frequency = 1.2f;
+    float amplitude = 1.0f;
+    float lacunarity = 2.f;
+    float persistance = 0.5f;
+
     double scale = 1.5;
-    int roadnetseed = 1;
+    int roadnetseed = 4;
 
     uint32_t test_growth_steps = 1024;
     float test_growth_stepsize = 0.25f;
@@ -164,7 +168,7 @@ int main()
             double _x = double(i) / pn_size * scale;
             double _y = double(j) / pn_size * scale;
             // auto v = pnoise.noise(_x,_y);
-            auto ov = pnoise.fbm(_x, _y, octave, frequency, amplitude);
+            auto ov = pnoise.fbm(_x, _y, octave, frequency, amplitude, lacunarity, persistance);
             auto v = (ov + 1.0) / 2.0;
             // uint8_t vuint8 = uint8_t(v * 255.0);
             lmcore::PosColorVertex mv;
@@ -192,7 +196,7 @@ int main()
                 float y = (float(i) / pn_size - 0.5f) * field_size;
                 float v = field1f->Sample(x, y);
                 auto _v = (v + 1.f) / 2.f;
-                uint8_t vuint8 = uint8_t(_v * 255.0);
+                uint8_t vuint8 = uint8_t(_v * 32.0)*4;
                 test_tex.push_back(vuint8);
             }
         }
@@ -211,17 +215,17 @@ int main()
 
     lmcore::RoadNet rnet(field_size, field_size, roadnetseed);
     lmcore::L1Growth gpolicy1(field1f);
-    gpolicy1.Grow(rnet, test_growth_steps, test_growth_stepsize, 2u);
+    gpolicy1.Grow(rnet, test_growth_steps, test_growth_stepsize, 1u);
     lmcore::L2Growth gpolicy2(field1f);
     gpolicy2.Grow(rnet, 25, test_growth_stepsize, 8u);
     gpolicy2.Grow(rnet, 15, test_growth_stepsize, 8u);
     gpolicy2.Grow(rnet, 10, test_growth_stepsize, 64u);
     lmcore::L3Growth gpolicy3(field1f);
     gpolicy3.Grow(rnet, 10, test_growth_stepsize, 64u);
-    gpolicy3.Grow(rnet,10,test_growth_stepsize,128u);
+    gpolicy3.Grow(rnet, 10, test_growth_stepsize, 128u);
     lmcore::L4Growth gpolicy4(field1f);
-    gpolicy4.Grow(rnet,5,test_growth_stepsize,128u);
-    //gpolicy4.Grow(rnet,5,test_growth_stepsize,128u);
+    gpolicy4.Grow(rnet, 10, test_growth_stepsize, 128u);
+    // gpolicy4.Grow(rnet,6,test_growth_stepsize,128u);
 
     uint32_t strSize = stripe_pos.size();
 
@@ -235,25 +239,35 @@ int main()
             float r, g, b;
             switch (level)
             {
+            case 0:
+                r = 1.0;
+                g = 0.3;
+                b = 0.0;
+                break;
             case 1:
                 r = 1.0;
-                g = 0.0;
+                g = 0.6;
                 b = 0.0;
                 break;
             case 2:
                 r = 1.0;
-                g = 1.0;
+                g = 0.9;
                 b = 0.0;
                 break;
             case 3:
-                r = 0.2;
-                g = 8.0;
+                r = 1.0;
+                g = 0.9;
                 b = 0.3;
+                break;
+            case 4:
+                r = 1.0;
+                g = 0.9;
+                b = 0.6;
                 break;
             default:
                 r = 0.0;
                 g = 0.2;
-                b = 0.8;
+                b = 1.0;
                 break;
             }
 
