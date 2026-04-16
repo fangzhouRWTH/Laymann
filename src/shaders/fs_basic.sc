@@ -1,4 +1,4 @@
-$input v_color0, v_normal, v_wpos
+$input v_color0, v_normal, v_wpos, v_uv0
 
 uniform vec4 u_camera;
 
@@ -20,7 +20,7 @@ void main()
     float verti = 1.0 + clamp(v_wpos.z * 0.05,-0.66,0.66);
 
     float co = (amb + dirl * max(0.0,d)) * verti;
-    vec4 color = co * vec4(1.0);
+    vec4 color = co * vec4(v_color0.x,v_color0.y,v_color0.z,1.0);
     color.w = 1.0;
 
     float depth = 1.0 - gl_FragCoord.z;

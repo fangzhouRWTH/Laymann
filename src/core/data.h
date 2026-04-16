@@ -15,6 +15,14 @@ namespace lmcore
         
     };
 
+    enum class UniformType
+    {
+        Vec3,
+        Vec4,
+        
+        Sampler2D,
+    };
+
     struct PosColorVertex
     {
         float x = 0.f;
@@ -30,6 +38,8 @@ namespace lmcore
         float u = 0.0;
         float v = 0.0;
     };
+
+    static_assert(sizeof(lmcore::PosColorVertex) == sizeof(float) * 12, "PosColorVertex size mismatch");
 
     struct BBox
     {

@@ -46,6 +46,8 @@ namespace lmcore
         bgfx::VertexBufferHandle vbh;
         bgfx::IndirectBufferHandle ibh;
         bool indexDraw = false;
+
+        // TODO
     };
 
     struct RTexture
@@ -170,9 +172,9 @@ namespace lmcore
 
             mPosColorLayout.begin()
                 .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
-                .add(bgfx::Attrib::Normal, 3, bgfx::AttribType::Float, true)
-                .add(bgfx::Attrib::Color0, 4, bgfx::AttribType::Float, true)
-                .add(bgfx::Attrib::TexCoord0, 2, bgfx::AttribType::Float, true)
+                .add(bgfx::Attrib::Normal, 3, bgfx::AttribType::Float)
+                .add(bgfx::Attrib::Color0, 4, bgfx::AttribType::Float)
+                .add(bgfx::Attrib::TexCoord0, 2, bgfx::AttribType::Float)
                 .end();
 
             // TODO move out timer
@@ -256,10 +258,10 @@ namespace lmcore
             mRenderTextures.destroy(handle);
         }
 
-        void UpdateTexture2D(RenderTextureHandle handle, void * data)
+        void UpdateTexture2D(RenderTextureHandle handle, void *data)
         {
             RTexture t = mRenderTextures.get(handle);
-            if(t.destroyed)
+            if (t.destroyed)
                 return;
             assert(bgfx::isValid(t.th));
             bgfx::updateTexture2D(
@@ -281,17 +283,18 @@ namespace lmcore
             mFrameObjects.objs.insert(mFrameObjects.objs.end(), objs.begin(), objs.end());
         }
 
-        template <typename T>
+        template <lmcore::UniformType T>
         void CreateUniform(const std::string &name)
         {
             assert(mUniforms.find(name) == mUniforms.end());
             bgfx::UniformHandle handle;
-            if constexpr (std::is_same_v<T, lmcore::Vec4f>)
+            if constexpr (T == lmcore::UniformType::Vec4)
             {
-                handle = bgfx::createUniform("u_camera", bgfx::UniformType::Vec4);
+                handle = bgfx::createUniform(name.c_str(), bgfx::UniformType::Vec4);
             }
-            else
+            if constexpr (T == lmcore::UniformType::Sampler2D)
             {
+                handle = bgfx::createUniform(name.c_str(), bgfx::UniformType::Sampler);
             }
 
             mUniforms.insert({name, handle});
@@ -306,6 +309,21 @@ namespace lmcore
             assert((h.idx != bgfx::kInvalidHandle));
 
             bgfx::setUniform(h, data, size);
+        }
+
+        void UpdateSampler(const std::string &name, RenderTextureHandle handle)
+        {
+            auto hi = mUniforms.find(name);
+
+            assert(hi != mUniforms.end());
+            auto h = hi->second;
+            assert((h.idx != bgfx::kInvalidHandle));
+
+            auto bh = mRenderTextures.get(handle);
+            if (bgfx::isValid(bh.th))
+            {
+                bgfx::setTexture(0, h, bh.th);
+            }
         }
 
         void Destroy()
@@ -350,23 +368,23 @@ namespace lmcore
                 // printVec3("at",{at.x,at.y,at.z});
                 // printVec3("upArr",{upArr.x,upArr.y,upArr.z});
 
-                bx::mtxLookAt(view, eye, at, upArr);
+                bx::mtxLookAt(view, eye, at, upArr, bx::Handedness::Right);
 
                 float aspect = (mWindowPtr->mHeight > 0) ? (float)mWindowPtr->mWidth / (float)mWindowPtr->mHeight : 1.0f;
                 const bgfx::Caps *caps = bgfx::getCaps();
                 float nearp = 0.1f;
                 float farp = 100.f;
                 float nf[4] = {nearp, farp, 0, 0};
-                bx::mtxProj(proj, 60.0f, aspect, nearp, farp, caps->homogeneousDepth);
+                bx::mtxProj(proj, 60.0f, aspect, nearp, farp, caps->homogeneousDepth, bx::Handedness::Right);
                 bgfx::setViewTransform(mViewId, view, proj);
 
                 // this is not right
-                float mtx[16];
-                bx::mtxIdentity(mtx);
+                // float mtx[16];
+                // bx::mtxIdentity(mtx);
                 // this is not right
 
                 bgfx::touch(mViewId);
-                bgfx::setTransform(mtx);
+                // bgfx::setTransform(mtx);
                 UpdateUniform("u_camera", nf, 1);
             }
         }
@@ -385,6 +403,14 @@ namespace lmcore
                 auto b = mRenderObjects.robjs[o.h];
                 Mat4f mtx = o.transform.matrix();
                 auto p = mPrograms.find(o.p);
+
+                if (o.txcount > 0)
+                {
+                    // TODO
+                    auto h = o.txhs[0];
+                    UpdateSampler("s_tex0",h);
+                }
+
                 bgfx::setVertexBuffer(0, b.vbh);
                 bgfx::setTransform(mtx.data());
                 bgfx::submit(mViewId, p->second.pgh);
@@ -400,7 +426,8 @@ namespace lmcore
     private:
         void initDefaultUniforms()
         {
-            CreateUniform<lmcore::Vec4f>("u_camera");
+            CreateUniform<lmcore::UniformType::Vec4>("u_camera");
+            CreateUniform<lmcore::UniformType::Sampler2D>("s_tex0");
         }
 
     private:
@@ -485,7 +512,7 @@ namespace lmcore
 
     RenderTextureHandle Renderer::CreateTexture2D(const uint32_t width, const uint32_t height, TextureFormat format, void *data)
     {
-        return impl->CreateTexture2D(width,height,format,data);
+        return impl->CreateTexture2D(width, height, format, data);
     }
 
     void Renderer::UpdateTexture2D(const RenderTextureHandle handle, void *data)

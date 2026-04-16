@@ -187,21 +187,21 @@ int main()
 
             auto et = ecs->Create();
             ecs->Add(et, rc);
-            ecs->Add(et, lmcore::PositionComponent{.iso = c.pose});
+            ecs->Add(et, lmcore::TransformComponent{.iso = c.pose});
         }
     }
 
     auto wall_line_v = rd->CreateRenderObject(fpline_vertices.data(), fpline_vertices.size());
     lmcore::RenderComponent rc_wall_line = {.handle = wall_line_v, .program = "grid", .line = true};
     auto et_line = ecs->Create();
-    ecs->Add(et_line, lmcore::PositionComponent{});
+    ecs->Add(et_line, lmcore::TransformComponent{});
     ecs->Add(et_line, rc_wall_line);
 
     initGridData();
     auto grid_v = rd->CreateRenderObject(gridVertices, 204);
     lmcore::RenderComponent rc_grid = {.handle = grid_v, .program = "grid", .line = true};
     auto et_grid = ecs->Create();
-    ecs->Add(et_grid, lmcore::PositionComponent{});
+    ecs->Add(et_grid, lmcore::TransformComponent{});
     ecs->Add(et_grid, rc_grid);
 
     std::vector<lmcore::PosColorVertex> cubev;
@@ -242,7 +242,7 @@ int main()
         //lmcore::FieldVisualComponent
 
         auto et_field = ecs->Create();
-        ecs->Add(et_field, lmcore::PositionComponent{.iso = iso});
+        ecs->Add(et_field, lmcore::TransformComponent{.iso = iso});
         ecs->Add(et_field, rc);
 
         // auto &samples = field.GetSamples();
@@ -254,7 +254,7 @@ int main()
         //     lmcore::RenderComponent rc = {.handle = cube, .program = "basic", .line = false};
 
         //     auto et_cube = ecs->Create();
-        //     ecs->Add(et_cube, lmcore::PositionComponent{.iso = iso});
+        //     ecs->Add(et_cube, lmcore::TransformComponent{.iso = iso});
         //     ecs->Add(et_cube, rc);
         // }
     }
@@ -262,7 +262,7 @@ int main()
     auto wall_v = rd->CreateRenderObject(temp_walls.data(), temp_walls.size());
     lmcore::RenderComponent rc_wall = {.handle = wall_v, .program = "basic", .line = false};
     auto et_wall = ecs->Create();
-    ecs->Add(et_wall, lmcore::PositionComponent{});
+    ecs->Add(et_wall, lmcore::TransformComponent{});
     ecs->Add(et_wall, rc_wall);
 
     uint32_t x = 10u;
@@ -287,7 +287,7 @@ int main()
     //             lmcore::PhysicalComponent pc = {.handle = phcube};
 
     //             auto et_cube = ecs->Create();
-    //             ecs->Add(et_cube, lmcore::PositionComponent{});
+    //             ecs->Add(et_cube, lmcore::TransformComponent{});
     //             ecs->Add(et_cube, rc);
     //             ecs->Add(et_cube, pc);
     //         }
@@ -296,7 +296,7 @@ int main()
 
     auto ecctrl = ecs->Create();
     ecs->Add(ecctrl, lmcore::CameraComponent{.camera = framework.GetContext().cam_ptr});
-    ecs->Add(ecctrl, lmcore::PositionComponent{});
+    ecs->Add(ecctrl, lmcore::TransformComponent{});
 
     while (!framework.ShouldClose())
     {

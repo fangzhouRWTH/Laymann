@@ -11,5 +11,5 @@ void main()
     float co = fade_dis - dis_w_center;
     co = co / fade_dis;
 
-    gl_FragColor = color * co;
+    gl_FragColor = color;// * co;
 }

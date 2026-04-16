@@ -165,20 +165,25 @@ namespace lmcore
     void ECSRenderSystem::Update(ECSUpdateContext context)
     {
         auto &reg = context.registry->reg;
-        auto view = reg.view<RenderComponent, PositionComponent>();
+        auto view = reg.view<RenderComponent, TransformComponent>();
 
         std::vector<FrameObject> objs;
 
         for (auto entity : view)
         {
             auto &rc = view.get<RenderComponent>(entity);
-            auto &pos = view.get<PositionComponent>(entity);
+            auto &pos = view.get<TransformComponent>(entity);
 
             FrameObject fo;
             fo.h = rc.handle;
             fo.line = rc.line;
             fo.p = rc.program;
             fo.transform = pos.iso;
+            for(auto i = 0; i < rc.tex_count; i++)
+            {
+                fo.txhs[i] = rc.texHandles[i];
+            }
+            fo.txcount = rc.tex_count;
             objs.push_back(fo);
         }
 
@@ -196,14 +201,14 @@ namespace lmcore
     void ECSPhysicalVisualizationSystem::Update(ECSUpdateContext context)
     {
         auto &reg = context.registry->reg;
-        auto view = reg.view<PhysicalVisualComponent, PositionComponent>();
+        auto view = reg.view<PhysicalVisualComponent, TransformComponent>();
 
         std::vector<FrameObject> objs;
 
         for (auto entity : view)
         {
             auto &rc = view.get<PhysicalVisualComponent>(entity);
-            auto &pos = view.get<PositionComponent>(entity);
+            auto &pos = view.get<TransformComponent>(entity);
 
             FrameObject fo;
             fo.h = rc.handle;
@@ -224,12 +229,12 @@ namespace lmcore
         mSimulator->Update(context.deltaTime);
 
         auto &reg = context.registry->reg;
-        auto view = reg.view<PhysicalComponent, PositionComponent>();
+        auto view = reg.view<PhysicalComponent, TransformComponent>();
 
         for (auto entity : view)
         {
             auto &phyc = view.get<PhysicalComponent>(entity);
-            auto &pos = view.get<PositionComponent>(entity);
+            auto &pos = view.get<TransformComponent>(entity);
 
             auto s = mSimulator->GetPhysicalState(phyc.handle);
             pos.iso = s.pose;
@@ -239,7 +244,7 @@ namespace lmcore
     void ECSCameraControlSystem::Update(ECSUpdateContext context)
     {
         auto &reg = context.registry->reg;
-        auto view = reg.view<CameraComponent, PositionComponent>();
+        auto view = reg.view<CameraComponent, TransformComponent>();
 
         // auto keys = ctrlptr->current_key_states;
         auto keys = ctrlptr->temporal_deduct_key_states;
@@ -249,7 +254,8 @@ namespace lmcore
         for (auto entity : view)
         {
             auto &cam = view.get<CameraComponent>(entity);
-            auto &pos = view.get<PositionComponent>(entity);
+            auto &pos = view.get<TransformComponent>(entity);
+            //TODO CAM POS UPDATE
 
             float dt = (float)(context.deltaTime);
 
@@ -277,7 +283,7 @@ namespace lmcore
                     double dx = cmst.lastMouseX - lmst.lastMouseX;
                     double dy = cmst.lastMouseY - lmst.lastMouseY;
 
-                    cam.camera->yaw += (float)dx * ctrlptr->mouseSensitivity;
+                    cam.camera->yaw -= (float)dx * ctrlptr->mouseSensitivity;
                     cam.camera->pitch -= (float)dy * ctrlptr->mouseSensitivity;
 
                     const float limit = bx::toRad(89.5f);
@@ -304,6 +310,10 @@ namespace lmcore
                 // printVec3("up", cam.camera->up * moveUp);
                 // printVec3("forward", cam.camera->forward * moveForward);
                 // printVec3("right", cam.camera->right * moveRight);
+
+                // printVec3("up", cam.camera->up);
+                // printVec3("forward", cam.camera->forward);
+                // printVec3("right", cam.camera->right);
 
                 cam.camera->moveDir = {
                     cam.camera->forward.x() * moveForward + cam.camera->right.x() * moveRight + cam.camera->up.x() * moveUp,

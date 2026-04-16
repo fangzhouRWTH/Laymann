@@ -11,14 +11,14 @@ namespace lmcore
     void ECSFieldAnalysisVisualSystem::Update(ECSUpdateContext context)
     {
         auto &reg = context.registry->reg;
-        auto view = reg.view<FieldVisualComponent, PositionComponent>();
+        auto view = reg.view<FieldVisualComponent, TransformComponent>();
 
         std::vector<FrameObject> objs;
 
         for (auto entity : view)
         {
             auto &rc = view.get<FieldVisualComponent>(entity);
-            auto &pos = view.get<PositionComponent>(entity);
+            auto &pos = view.get<TransformComponent>(entity);
 
             FrameObject fo;
             fo.h = rc.handle;

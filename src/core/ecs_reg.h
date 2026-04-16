@@ -12,6 +12,6 @@ namespace lmcore
     REG_ECS_COMP(RenderComponent)
     REG_ECS_COMP(PhysicalVisualComponent)
     REG_ECS_COMP(PhysicalComponent)
-    REG_ECS_COMP(PositionComponent)
+    REG_ECS_COMP(TransformComponent)
     REG_ECS_COMP(CameraComponent)
 }

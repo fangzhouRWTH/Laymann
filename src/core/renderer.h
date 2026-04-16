@@ -37,6 +37,10 @@ namespace lmcore
         std::string p;
         bool line = false;
         Iso3f transform;
+
+        //TODO
+        RenderTextureHandle txhs[4];
+        uint32_t txcount = 0u;
     };
 
     struct RendererUpdateContext

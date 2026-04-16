@@ -13,6 +13,10 @@ namespace lmcore
         RenderObjectHandle handle;
         std::string program;
         bool line = false;
+
+        //TODO
+        RenderTextureHandle texHandles[4u];
+        uint32_t tex_count = 0u;
     };
 
     struct PhysicalVisualComponent
@@ -34,7 +38,7 @@ namespace lmcore
         PhysicalObjectHandle handle;
     };
 
-    struct PositionComponent
+    struct TransformComponent
     {
         Iso3f iso = Iso3f::Identity();
     };
