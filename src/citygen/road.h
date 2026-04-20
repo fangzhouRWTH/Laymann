@@ -13,9 +13,120 @@
 
 namespace lmcore
 {
+    template <typename T>
+    struct SparseVector
+    {
+        std::vector<std::pair<bool, uint32_t>> indices;
+        std::queue<uint32_t> idle_indices;
+        std::vector<T> content;
+        uint32_t size = 0u;
+
+        uint32_t get_full_size()
+        {
+            return content.size();
+        }
+
+        uint32_t get_size()
+        {
+            return size;
+        }
+
+        uint32_t add(T t)
+        {
+            uint32_t idx;
+            if (!idle_indices.empty())
+            {
+                idx = idle_indices.front();
+                idle_indices.pop();
+                indices[idx].first = true;
+            }
+            else
+            {
+                auto &item = indices.emplace_back();
+                uint32_t cidx = content.size();
+                auto &co = content.emplace_back(t);
+                item.first = true;
+                item.second = cidx;
+            }
+
+            size++;
+
+            return idx;
+        }
+
+        void remove(uint32_t idx)
+        {
+            assert(is_valid(idx));
+            indices[idx].first = false;
+            idle_indices.push(idx);
+
+            size--;
+        }
+
+        const bool is_valid(uint32_t idx) const
+        {
+            if (idx < indices.size() && indices[idx].first)
+                return true;
+            assert(false);
+            return false;
+        }
+
+        T &get(uint32_t idx)
+        {
+            assert(is_valid(idx));
+            return content[indices[idx].second];
+        }
+
+        const T &get(uint32_t idx) const
+        {
+            assert(is_valid(idx));
+            return content[indices[idx].second];
+        }
+
+        T &operator[](uint32_t idx)
+        {
+            return get(idx);
+        }
+
+        const T &operator[](uint32_t idx) const
+        {
+            return get(idx);
+        }
+
+        std::vector<T> getArray()
+        {
+            std::vector<T> array;
+
+            for (auto &i : indices)
+            {
+                if (i.first)
+                    array.push_back(content[i.second]);
+            }
+
+            return std::move(array);
+        }
+
+        std::vector<uint32_t> getIndicesArray()
+        {
+            std::vector<uint32_t> array;
+
+            for (auto &i : indices)
+            {
+                if (i.first)
+                    array.push_back(i.second);
+            }
+
+            return std::move(array);
+        }
+    };
+
+#define MAX_NODE_EDGE_COUNT 8u
     struct RoadNode
     {
         GVec3f pos;
+        const static uint32_t sMaxEdgeCount = MAX_NODE_EDGE_COUNT;
+        uint32_t edgeIndice[sMaxEdgeCount];
+        uint32_t edgeCount = 0u;
     };
 
     struct RoadSegment
@@ -45,10 +156,142 @@ namespace lmcore
         float regionHalfWidth;
         float regionHalfHeight;
 
-        std::vector<RoadNode> nodes;
-        std::vector<RoadSegment> segments;
+        // std::vector<RoadNode> nodes;
+        // std::vector<RoadSegment> segments;
+
+        SparseVector<RoadNode> nodes;
+        SparseVector<RoadSegment> segments;
+
         std::queue<GrowthFront> fronts;
         lmcore::Random random;
+    };
+
+    class RoadNetBuilder
+    {
+    public:
+        RoadNet get()
+        {
+            return mNet;
+        }
+
+        RoadNode &get_node(uint32_t idx)
+        {
+            assert(idx < mNet.nodes.get_size());
+            return mNet.nodes[idx];
+        }
+
+        RoadSegment &get_edge(uint32_t idx)
+        {
+            assert(idx < mNet.segments.get_size());
+            return mNet.segments[idx];
+        }
+
+        uint32_t add_node(GVec3f pos)
+        {
+            RoadNode node;
+            node.pos = pos;
+
+            uint32_t idx = mNet.nodes.get_size();
+            mNet.nodes.add(node);
+
+            return idx;
+        }
+
+        uint32_t add_edge(uint32_t idx1, uint32_t idx2, int level)
+        {
+            uint32_t nodeCount = mNet.nodes.get_size();
+            assert(idx1 < nodeCount && idx2 < nodeCount);
+            auto &n1 = mNet.nodes[idx1];
+            auto &n2 = mNet.nodes[idx2];
+            assert(check_edge_count(idx1) && check_edge_count(idx2));
+            assert(!has_edge(idx1, idx2));
+            uint32_t idx = mNet.segments.get_size();
+            RoadSegment seg;
+            seg.startNode = idx1;
+            seg.endNode = idx2;
+            seg.level = level;
+            mNet.segments.add(seg);
+            n1.edgeIndice[n1.edgeCount] = idx;
+            n1.edgeCount++;
+            n2.edgeIndice[n2.edgeCount] = idx;
+            n2.edgeCount++;
+
+            return idx;
+        }
+
+        void remove_node(uint32_t idx)
+        {
+            assert(check_node(idx));
+            auto n = mNet.nodes[idx];
+            uint32_t segcount = n.edgeCount;
+            for(auto si = 0; si < segcount; si++)
+            {
+                auto seg = mNet.segments[si];
+                auto n1 = seg.startNode;
+                auto n2 = seg.endNode;
+
+                uint32_t other = idx == n1? n2 : n1;
+                auto & otherN = mNet.nodes[other];
+                uint32_t eCount = 0;
+                for(auto i = 0; i < otherN.edgeCount; i++)
+                {
+                    if(otherN.edgeIndice[i] != si)
+                    {
+                        otherN.edgeIndice[eCount++] = otherN.edgeIndice[i];
+                    }
+                }
+                otherN.edgeCount = eCount;
+
+                mNet.segments.remove(si);
+            }
+            
+            mNet.nodes.remove(idx);
+        }
+
+        void remove_edge(uint32_t idx1, uint32_t idx2)
+        {
+            assert(check_node(idx1)&&check_node(idx2));
+            auto n1 = mNet.nodes[idx1];
+            auto n2 = mNet.nodes[idx2];
+
+            
+        }
+
+    private:
+        bool check_node(uint32_t idx) const
+        {
+            return mNet.nodes.is_valid(idx);
+        }
+
+        bool check_edge(uint32_t idx) const
+        {
+            return mNet.segments.is_valid(idx);
+        }
+
+        bool check_edge_count(uint32_t idx) const
+        {
+            return mNet.nodes[idx].edgeCount < mNet.nodes[idx].sMaxEdgeCount;
+        }
+
+        bool has_edge(uint32_t idx1, uint32_t idx2)
+        {
+            assert(check_node(idx1) && check_node(idx2));
+            auto &n1 = mNet.nodes[idx1];
+            auto &n2 = mNet.nodes[idx2];
+
+            for (uint32_t eidx = 0; eidx < n1.edgeCount; eidx++)
+            {
+                assert(check_edge(eidx));
+                auto &e = mNet.segments[eidx];
+                if ((e.startNode == idx1 && e.endNode == idx2) || (e.startNode == idx2 && e.endNode == idx1))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        RoadNet mNet;
     };
 
     class GrowthPolicy
@@ -92,8 +335,10 @@ namespace lmcore
                     bool has_intersect = false;
                     int int_node_id = -1;
                     GVec3f newPos;
-                    for (auto &s : net.segments)
+                    auto segidx = net.segments.getIndicesArray();
+                    for (auto sidx : segidx)
                     {
+                        auto &s = net.segments.get(sidx);
                         auto s0 = net.nodes[s.startNode].pos;
                         auto s1 = net.nodes[s.endNode].pos;
                         auto s2 = net.nodes[f.nodeId].pos;
@@ -117,8 +362,8 @@ namespace lmcore
                     }
                     else
                     {
-                        uint32_t nidx = net.nodes.size();
-                        net.nodes.push_back(pr.second);
+                        uint32_t nidx = net.nodes.get_size();
+                        net.nodes.add(pr.second);
                         pr.first.nodeId = nidx;
                     }
                     net.fronts.push(pr.first);
@@ -129,7 +374,7 @@ namespace lmcore
                     seg.startNode = f.nodeId;
                     seg.endNode = pr.first.nodeId;
 
-                    net.segments.push_back(seg);
+                    net.segments.add(seg);
                 }
             }
         }
@@ -174,12 +419,12 @@ namespace lmcore
                 float ntx = ndx * 2.f * modifier + x;
                 float nty = ndy * 2.f * modifier + y;
 
-                uint32_t idx = net.nodes.size();
+                uint32_t idx = net.nodes.get_size();
                 RoadNode node{.pos = GVec3f{x, y}};
                 auto h = mField1->Sample(x, y);
                 node.pos.z = h;
 
-                net.nodes.push_back(node);
+                net.nodes.add(node);
 
                 GrowthFront front1;
                 front1.dir = GVec2f{pdx, pdy};
@@ -279,8 +524,11 @@ namespace lmcore
                     bool has_intersect = false;
                     int int_node_id = -1;
                     GVec3f newPos;
-                    for (auto &s : net.segments)
+
+                    auto segidx = net.segments.getIndicesArray();
+                    for (auto sidx : segidx)
                     {
+                        auto &s = net.segments.get(sidx);
                         auto s0 = net.nodes[s.startNode].pos;
                         auto s1 = net.nodes[s.endNode].pos;
                         auto s2 = net.nodes[f.nodeId].pos;
@@ -304,8 +552,8 @@ namespace lmcore
                     }
                     else
                     {
-                        uint32_t nidx = net.nodes.size();
-                        net.nodes.push_back(pr.second);
+                        uint32_t nidx = net.nodes.get_size();
+                        net.nodes.add(pr.second);
                         pr.first.nodeId = nidx;
                         net.fronts.push(pr.first);
                     }
@@ -316,7 +564,7 @@ namespace lmcore
                     seg.startNode = f.nodeId;
                     seg.endNode = pr.first.nodeId;
 
-                    net.segments.push_back(seg);
+                    net.segments.add(seg);
                 }
             }
         }
@@ -330,7 +578,7 @@ namespace lmcore
             net.fronts.swap(newqueue);
 
             uint32_t bcount = 0;
-            uint32_t segcount = net.segments.size();
+            uint32_t segcount = net.segments.get_size();
             float accept_thresh = 0.0f;
             int itercount = 0;
 
@@ -460,8 +708,10 @@ namespace lmcore
                     bool has_intersect = false;
                     int int_node_id = -1;
                     GVec3f newPos;
-                    for (auto &s : net.segments)
+                    auto segidx = net.segments.getIndicesArray();
+                    for (auto sidx : segidx)
                     {
+                        auto &s = net.segments.get(sidx);
                         auto s0 = net.nodes[s.startNode].pos;
                         auto s1 = net.nodes[s.endNode].pos;
                         auto s2 = net.nodes[f.nodeId].pos;
@@ -485,8 +735,8 @@ namespace lmcore
                     }
                     else
                     {
-                        uint32_t nidx = net.nodes.size();
-                        net.nodes.push_back(pr.second);
+                        uint32_t nidx = net.nodes.get_size();
+                        net.nodes.add(pr.second);
                         pr.first.nodeId = nidx;
                         net.fronts.push(pr.first);
                     }
@@ -497,7 +747,7 @@ namespace lmcore
                     seg.startNode = f.nodeId;
                     seg.endNode = pr.first.nodeId;
 
-                    net.segments.push_back(seg);
+                    net.segments.add(seg);
                 }
             }
         }
@@ -511,7 +761,7 @@ namespace lmcore
             net.fronts.swap(newqueue);
 
             uint32_t bcount = 0;
-            uint32_t segcount = net.segments.size();
+            uint32_t segcount = net.segments.get_size();
             float accept_thresh = 0.0f;
             int itercount = 0;
 
@@ -645,8 +895,10 @@ namespace lmcore
                     bool has_intersect = false;
                     int int_node_id = -1;
                     GVec3f newPos;
-                    for (auto &s : net.segments)
+                    auto segidx = net.segments.getIndicesArray();
+                    for (auto sidx : segidx)
                     {
+                        auto &s = net.segments.get(sidx);
                         auto s0 = net.nodes[s.startNode].pos;
                         auto s1 = net.nodes[s.endNode].pos;
                         auto s2 = net.nodes[f.nodeId].pos;
@@ -670,8 +922,8 @@ namespace lmcore
                     }
                     else
                     {
-                        uint32_t nidx = net.nodes.size();
-                        net.nodes.push_back(pr.second);
+                        uint32_t nidx = net.nodes.get_size();
+                        net.nodes.add(pr.second);
                         pr.first.nodeId = nidx;
                         net.fronts.push(pr.first);
                     }
@@ -682,7 +934,7 @@ namespace lmcore
                     seg.startNode = f.nodeId;
                     seg.endNode = pr.first.nodeId;
 
-                    net.segments.push_back(seg);
+                    net.segments.add(seg);
                 }
             }
         }
@@ -696,7 +948,7 @@ namespace lmcore
             net.fronts.swap(newqueue);
 
             uint32_t bcount = 0;
-            uint32_t segcount = net.segments.size();
+            uint32_t segcount = net.segments.get_size();
             float accept_thresh = 0.0f;
             int itercount = 0;
 

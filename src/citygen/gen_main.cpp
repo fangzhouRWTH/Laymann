@@ -156,7 +156,7 @@ int main()
     float persistance = 0.5f;
 
     double scale = 1.5;
-    int roadnetseed = 4;
+    int roadnetseed = 3;
 
     uint32_t test_growth_steps = 1024;
     float test_growth_stepsize = 0.25f;
@@ -196,7 +196,7 @@ int main()
                 float y = (float(i) / pn_size - 0.5f) * field_size;
                 float v = field1f->Sample(x, y);
                 auto _v = (v + 1.f) / 2.f;
-                uint8_t vuint8 = uint8_t(_v * 32.0)*4;
+                uint8_t vuint8 = uint8_t(_v * 32.0) * 4;
                 test_tex.push_back(vuint8);
             }
         }
@@ -215,7 +215,7 @@ int main()
 
     lmcore::RoadNet rnet(field_size, field_size, roadnetseed);
     lmcore::L1Growth gpolicy1(field1f);
-    gpolicy1.Grow(rnet, test_growth_steps, test_growth_stepsize, 1u);
+    gpolicy1.Grow(rnet, test_growth_steps, test_growth_stepsize, 3u);
     lmcore::L2Growth gpolicy2(field1f);
     gpolicy2.Grow(rnet, 25, test_growth_stepsize, 8u);
     gpolicy2.Grow(rnet, 15, test_growth_stepsize, 8u);
@@ -293,8 +293,10 @@ int main()
 
         std::vector<lmcore::PosColorVertex> str_verts;
 
-        for (auto s : rnet.segments)
+        auto segidx = rnet.segments.getIndicesArray();
+        for (auto sidx : segidx)
         {
+            auto &s = rnet.segments.get(sidx);
             auto ns = rnet.nodes[s.startNode].pos;
             auto ne = rnet.nodes[s.endNode].pos;
             float hw = (5 - s.level) * 0.006f + 0.010f;
