@@ -21,12 +21,12 @@ namespace lmcore
         std::vector<T> content;
         uint32_t size = 0u;
 
-        uint32_t get_full_size()
+        uint32_t get_full_size() const
         {
             return content.size();
         }
 
-        uint32_t get_size()
+        uint32_t get_size() const
         {
             return size;
         }
@@ -103,7 +103,7 @@ namespace lmcore
                     array.push_back(content[i.second]);
             }
 
-            return std::move(array);
+            return array;
         }
 
         std::vector<uint32_t> getIndicesArray()
@@ -116,7 +116,7 @@ namespace lmcore
                     array.push_back(i.second);
             }
 
-            return std::move(array);
+            return array;
         }
     };
 
@@ -166,12 +166,23 @@ namespace lmcore
         lmcore::Random random;
     };
 
-    class RoadNetBuilder
+    class RoadNetOperator
     {
     public:
-        RoadNet get()
+        const RoadNet &get() const
         {
             return mNet;
+        }
+
+        RoadNet &get()
+        {
+            return mNet;
+        }
+
+        const RoadNode &get_node(uint32_t idx) const
+        {
+            assert(idx < mNet.nodes.get_size());
+            return mNet.nodes[idx];
         }
 
         RoadNode &get_node(uint32_t idx)
@@ -180,10 +191,30 @@ namespace lmcore
             return mNet.nodes[idx];
         }
 
+        const RoadSegment &get_edge(uint32_t idx) const
+        {
+            assert(idx < mNet.segments.get_size());
+            return mNet.segments[idx];
+        }
+
         RoadSegment &get_edge(uint32_t idx)
         {
             assert(idx < mNet.segments.get_size());
             return mNet.segments[idx];
+        }
+
+        const RoadSegment &get_edge(uint32_t idx1, uint32_t idx2) const
+        {
+            assert(check_node(idx1) && check_node(idx2));
+            auto eidx = u_find_edge(idx1, idx2);
+            return mNet.segments[eidx];
+        }
+
+        RoadSegment &get_edge(uint32_t idx1, uint32_t idx2)
+        {
+            assert(check_node(idx1) && check_node(idx2));
+            auto eidx = u_find_edge(idx1, idx2);
+            return mNet.segments[eidx];
         }
 
         uint32_t add_node(GVec3f pos)
@@ -224,18 +255,18 @@ namespace lmcore
             assert(check_node(idx));
             auto n = mNet.nodes[idx];
             uint32_t segcount = n.edgeCount;
-            for(auto si = 0; si < segcount; si++)
+            for (auto si = 0; si < segcount; si++)
             {
                 auto seg = mNet.segments[si];
                 auto n1 = seg.startNode;
                 auto n2 = seg.endNode;
 
-                uint32_t other = idx == n1? n2 : n1;
-                auto & otherN = mNet.nodes[other];
+                uint32_t other = idx == n1 ? n2 : n1;
+                auto &otherN = mNet.nodes[other];
                 uint32_t eCount = 0;
-                for(auto i = 0; i < otherN.edgeCount; i++)
+                for (auto i = 0; i < otherN.edgeCount; i++)
                 {
-                    if(otherN.edgeIndice[i] != si)
+                    if (otherN.edgeIndice[i] != si)
                     {
                         otherN.edgeIndice[eCount++] = otherN.edgeIndice[i];
                     }
@@ -244,17 +275,44 @@ namespace lmcore
 
                 mNet.segments.remove(si);
             }
-            
+
             mNet.nodes.remove(idx);
         }
 
         void remove_edge(uint32_t idx1, uint32_t idx2)
         {
-            assert(check_node(idx1)&&check_node(idx2));
+            assert(check_node(idx1) && check_node(idx2));
             auto n1 = mNet.nodes[idx1];
             auto n2 = mNet.nodes[idx2];
 
-            
+            auto edge_index = u_find_edge(idx1, idx2);
+            u_remove_edge_from_node_by_edge_index(idx1, edge_index);
+            u_remove_edge_from_node_by_edge_index(idx2, edge_index);
+
+            mNet.segments.remove(edge_index);
+        }
+
+        void remove_edge(uint32_t idx)
+        {
+            assert(check_edge(idx));
+            auto &e = mNet.segments[idx];
+            auto i1 = e.endNode;
+            auto i2 = e.startNode;
+
+            u_remove_edge_from_node_by_edge_index(i1, idx);
+            u_remove_edge_from_node_by_edge_index(i2, idx);
+
+            mNet.segments.remove(idx);
+        }
+
+        uint32_t insert_node(uint32_t ni1, uint32_t ni2, RoadNode node)
+        {
+            auto idx = mNet.nodes.add(node);
+            auto e = get_edge(ni1, ni2);
+            add_edge(idx, ni1, e.level);
+            add_edge(idx, ni2, e.level);
+            remove_edge(ni1, ni2);
+            return idx;
         }
 
     private:
@@ -291,13 +349,232 @@ namespace lmcore
             return false;
         }
 
+        const uint32_t u_find_edge(uint32_t ni1, uint32_t ni2) const
+        {
+            auto &n = get_node(ni1);
+            uint32_t ec = n.edgeCount;
+            for (auto i = 0; i < ec; i++)
+            {
+                auto &s = mNet.segments[n.edgeIndice[i]];
+                if (ni2 == s.startNode || ni2 == s.endNode)
+                    return n.edgeIndice[i];
+            }
+            assert(false);
+            return 0u;
+        }
+
+        const uint32_t u_find_edge_in_node_by_node_index(uint32_t ni1, uint32_t ni2) const
+        {
+            auto &n = get_node(ni1);
+            uint32_t ec = n.edgeCount;
+            for (auto i = 0; i < ec; i++)
+            {
+                auto &s = mNet.segments[n.edgeIndice[i]];
+                if (ni2 == s.startNode || ni2 == s.endNode)
+                    return i;
+            }
+            assert(false);
+            return 0u;
+        }
+
+        const uint32_t u_find_edge_in_node_by_edge_index(uint32_t ni, uint32_t ei) const
+        {
+            auto &n = get_node(ni);
+            uint32_t ec = n.edgeCount;
+            for (auto i = 0; i < ec; i++)
+            {
+                if (n.edgeIndice[i] == ei)
+                    return i;
+            }
+            assert(false);
+            return 0u;
+        }
+
+        void u_remove_edge_index(uint32_t ni, uint32_t ei)
+        {
+            auto &n = get_node(ni);
+            --n.edgeCount;
+            if (n.edgeCount > 0)
+            {
+                n.edgeIndice[ei] = n.edgeIndice[n.edgeCount];
+            }
+        }
+
+        void u_remove_edge_from_node_by_node_index(uint32_t ni1, uint32_t ni2)
+        {
+            uint32_t nei = u_find_edge_in_node_by_node_index(ni1, ni2);
+            u_remove_edge_index(ni1, nei);
+        }
+
+        void u_remove_edge_from_node_by_edge_index(uint32_t ni, uint32_t ei)
+        {
+            auto &e = mNet.segments[ei];
+            auto &n = mNet.nodes[ni];
+            uint32_t nei = u_find_edge_in_node_by_edge_index(ni, ei);
+            u_remove_edge_index(ni, nei);
+        }
+
         RoadNet mNet;
     };
 
-    class GrowthPolicy
+    struct FieldsArray
+    {
+        std::shared_ptr<Field1F> height_field = nullptr;
+    };
+
+    class RoadGenerationPolicy
     {
     public:
+        explicit RoadGenerationPolicy(FieldsArray _fields) : fields(_fields) {}
+        virtual ~RoadGenerationPolicy() {}
+        virtual void Generate(RoadNetOperator &net, uint32_t steps, float size) = 0;
+
+    protected:
+        FieldsArray fields;
+        std::queue<GrowthFront> mFronts;
+        lmcore::Random mRandom;
+    };
+
+    class DefaultMainRoadPolicy : public RoadGenerationPolicy
+    {
+    public:
+        explicit DefaultMainRoadPolicy(FieldsArray _fields) : RoadGenerationPolicy(_fields) {}
+        virtual void Generate(RoadNetOperator &net, uint32_t steps, float size)
+        {
+            float h = net.get().regionHalfHeight;
+            float w = net.get().regionHalfWidth;
+            float rs = 0.6f;
+            float px = mRandom.nextFloat(-w * rs, w * rs);
+            float py = mRandom.nextFloat(-h * rs, h * rs);
+            GVec3f pos = {px, py, 0.f};
+            auto ni = net.add_node(pos);
+
+            float dx = mRandom.nextFloat(-1.f, 1.f);
+            float dy = mRandom.nextFloat(-1.f, 1.f);
+            f_normalize_2d_fast(dx, dy);
+
+            GrowthFront front0;
+            front0.level = 0u;
+            front0.nodeId = ni;
+            front0.dir = {dx, dy};
+
+            GrowthFront front1;
+            front1.level = 0u;
+            front1.nodeId = ni;
+            front1.dir = {-dx, -dy};
+
+            GrowthFront front2;
+            front2.level = 0u;
+            front2.nodeId = ni;
+            front2.dir = {dy, -dx};
+
+            GrowthFront front3;
+            front3.level = 0u;
+            front3.nodeId = ni;
+            front3.dir = {-dy, dx};
+
+            mFronts.push(front0);
+            mFronts.push(front1);
+            mFronts.push(front2);
+            mFronts.push(front3);
+
+            for (uint32_t i = 0u; i < steps; i++)
+            {
+                uint32_t q_size = mFronts.size();
+                for (uint32_t qi = 0u; qi < q_size; qi++)
+                {
+                    GrowthFront f = mFronts.front();
+                    mFronts.pop();
+                    RoadNode n = net.get_node(f.nodeId);
+                    std::pair<GrowthFront, RoadNode> pr = grow(f, n, length);
+
+                    if (pr.first.level < 0)
+                        continue;
+
+                    auto potentialfront = pr.first;
+                    auto potentialnode = pr.second;
+
+                    bool has_intersect = false;
+                    int int_node_id = -1;
+                    GVec3f newPos;
+                    auto segidx = net.get().segments.getIndicesArray();
+                    for (auto sidx : segidx)
+                    {
+                        auto &s = net.get().segments.get(sidx);
+                        auto s0 = net.get().nodes[s.startNode].pos;
+                        auto s1 = net.get().nodes[s.endNode].pos;
+                        auto s2 = net.get().nodes[f.nodeId].pos;
+                        auto s3 = pr.second.pos;
+
+                        has_intersect = segmentsProperlyIntersect2D(s0, s1, s2, s3);
+                        if (has_intersect)
+                        {
+                            int_node_id = s.startNode;
+                            newPos.x = (s0.x + s1.x + s2.x + s3.x) / 4.f;
+                            newPos.y = (s0.y + s1.y + s2.y + s3.y) / 4.f;
+                            // newPos.z = mField1->Sample(newPos.x, newPos.y);
+                            break;
+                        }
+                    }
+
+                    if (has_intersect)
+                    {
+                        pr.first.nodeId = int_node_id;
+                        net.get().nodes[int_node_id].pos = newPos;
+                    }
+                    else
+                    {
+                        uint32_t nidx = net.get().nodes.get_size();
+                        net.get().nodes.add(pr.second);
+                        pr.first.nodeId = nidx;
+                    }
+                    mFronts.push(pr.first);
+
+                    RoadSegment seg;
+                    seg.active = true;
+                    seg.level = f.level;
+                    seg.startNode = f.nodeId;
+                    seg.endNode = pr.first.nodeId;
+
+                    net.get().segments.add(seg);
+                }
+            }
+        }
+
     private:
+        std::pair<GrowthFront, RoadNode> grow(GrowthFront front, RoadNode node, float length)
+        {
+            float move_u = node.pos.x;
+            float move_v = node.pos.y;
+
+            float tdx = front.target.x - move_u;
+            float tdy = front.target.y - move_v;
+
+            lmcore::GVec2f tv = {move_u, move_v};
+
+            //auto dv = mField1->SampleDxyz(tv.x, tv.y, length, {tdx, tdy, 0.f}, 0.5);
+            if (dv.x == 0.f && dv.y == 0.f)
+                return {GrowthFront{.level = -1}, node};
+
+            float d_mod = 0.3f;
+            float dx = dv.x * (1.f - d_mod) + front.dir.x * d_mod;
+            float dy = dv.y * (1.f - d_mod) + front.dir.y * d_mod;
+
+            tv.x += dx * length;
+            tv.y += dy * length;
+            //auto currentz = mField1->Sample(tv.x, tv.y);
+            // todo
+            if (currentz == 0.f)
+                return {GrowthFront{.level = -1}, node};
+
+            node.pos.x = tv.x;
+            node.pos.y = tv.y;
+            node.pos.z = currentz;
+
+            front.length += length;
+
+            return {front, node};
+        }
     };
 
     class L1Growth
