@@ -169,6 +169,7 @@ namespace lmcore
     class RoadNetOperator
     {
     public:
+        RoadNetOperator(float width, float height, uint32_t seed) : mNet(width, height, seed) {}
         const RoadNet &get() const
         {
             return mNet;
@@ -425,12 +426,12 @@ namespace lmcore
     class RoadGenerationPolicy
     {
     public:
-        explicit RoadGenerationPolicy(FieldsArray _fields) : fields(_fields) {}
+        explicit RoadGenerationPolicy(FieldsArray fields) : mFields(fields) {}
         virtual ~RoadGenerationPolicy() {}
         virtual void Generate(RoadNetOperator &net, uint32_t steps, float size) = 0;
 
     protected:
-        FieldsArray fields;
+        FieldsArray mFields;
         std::queue<GrowthFront> mFronts;
         lmcore::Random mRandom;
     };
@@ -446,7 +447,8 @@ namespace lmcore
             float rs = 0.6f;
             float px = mRandom.nextFloat(-w * rs, w * rs);
             float py = mRandom.nextFloat(-h * rs, h * rs);
-            GVec3f pos = {px, py, 0.f};
+            float pz = mFields.height_field->Sample(px,py);
+            GVec3f pos = {px, py, pz};
             auto ni = net.add_node(pos);
 
             float dx = mRandom.nextFloat(-1.f, 1.f);
@@ -485,10 +487,17 @@ namespace lmcore
                 {
                     GrowthFront f = mFronts.front();
                     mFronts.pop();
+                    auto &netdata = net.get();
                     RoadNode n = net.get_node(f.nodeId);
-                    std::pair<GrowthFront, RoadNode> pr = grow(f, n, length);
+                    std::pair<GrowthFront, RoadNode> pr = grow(f, n, size);
 
                     if (pr.first.level < 0)
+                        continue;
+
+                    if (pr.second.pos.x < -netdata.regionHalfWidth ||
+                        pr.second.pos.x > netdata.regionHalfWidth ||
+                        pr.second.pos.y < -netdata.regionHalfHeight ||
+                        pr.second.pos.y > netdata.regionHalfHeight)
                         continue;
 
                     auto potentialfront = pr.first;
@@ -496,7 +505,6 @@ namespace lmcore
 
                     bool has_intersect = false;
                     int int_node_id = -1;
-                    GVec3f newPos;
                     auto segidx = net.get().segments.getIndicesArray();
                     for (auto sidx : segidx)
                     {
@@ -510,22 +518,23 @@ namespace lmcore
                         if (has_intersect)
                         {
                             int_node_id = s.startNode;
-                            newPos.x = (s0.x + s1.x + s2.x + s3.x) / 4.f;
-                            newPos.y = (s0.y + s1.y + s2.y + s3.y) / 4.f;
+                            potentialnode.pos.x = (s0.x + s1.x + s2.x + s3.x) / 4.f;
+                            potentialnode.pos.y = (s0.y + s1.y + s2.y + s3.y) / 4.f;
                             // newPos.z = mField1->Sample(newPos.x, newPos.y);
                             break;
                         }
                     }
 
+                    potentialnode.pos.z = mFields.height_field->Sample(potentialnode.pos.x, potentialnode.pos.y);
                     if (has_intersect)
                     {
                         pr.first.nodeId = int_node_id;
-                        net.get().nodes[int_node_id].pos = newPos;
+                        net.get().nodes[int_node_id].pos = potentialnode.pos;
                     }
                     else
                     {
                         uint32_t nidx = net.get().nodes.get_size();
-                        net.get().nodes.add(pr.second);
+                        net.get().nodes.add(potentialnode);
                         pr.first.nodeId = nidx;
                     }
                     mFronts.push(pr.first);
@@ -552,24 +561,15 @@ namespace lmcore
 
             lmcore::GVec2f tv = {move_u, move_v};
 
-            //auto dv = mField1->SampleDxyz(tv.x, tv.y, length, {tdx, tdy, 0.f}, 0.5);
-            if (dv.x == 0.f && dv.y == 0.f)
-                return {GrowthFront{.level = -1}, node};
-
-            float d_mod = 0.3f;
-            float dx = dv.x * (1.f - d_mod) + front.dir.x * d_mod;
-            float dy = dv.y * (1.f - d_mod) + front.dir.y * d_mod;
+            float dx = front.dir.x;
+            float dy = front.dir.y;
 
             tv.x += dx * length;
             tv.y += dy * length;
-            //auto currentz = mField1->Sample(tv.x, tv.y);
-            // todo
-            if (currentz == 0.f)
-                return {GrowthFront{.level = -1}, node};
 
             node.pos.x = tv.x;
             node.pos.y = tv.y;
-            node.pos.z = currentz;
+            node.pos.z = 0.f;
 
             front.length += length;
 

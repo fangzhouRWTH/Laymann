@@ -147,7 +147,7 @@ int main()
     PerlinNoise pnoise;
     uint32_t pn_size = 1024u;
     float field_size = 10.f;
-    float height_scale = 0.5f;
+    float height_scale = 0.2f;
 
     int octave = 6;
     float frequency = 1.2f;
@@ -213,19 +213,24 @@ int main()
     float move_z = field1f->Sample(move_u, move_v);
     lmcore::GVec3f tv = {move_u, move_v, move_z};
 
-    lmcore::RoadNet rnet(field_size, field_size, roadnetseed);
-    lmcore::L1Growth gpolicy1(field1f);
-    gpolicy1.Grow(rnet, test_growth_steps, test_growth_stepsize, 3u);
-    lmcore::L2Growth gpolicy2(field1f);
-    gpolicy2.Grow(rnet, 25, test_growth_stepsize, 8u);
-    gpolicy2.Grow(rnet, 15, test_growth_stepsize, 8u);
-    gpolicy2.Grow(rnet, 10, test_growth_stepsize, 64u);
-    lmcore::L3Growth gpolicy3(field1f);
-    gpolicy3.Grow(rnet, 10, test_growth_stepsize, 64u);
-    gpolicy3.Grow(rnet, 10, test_growth_stepsize, 128u);
-    lmcore::L4Growth gpolicy4(field1f);
-    gpolicy4.Grow(rnet, 10, test_growth_stepsize, 128u);
-    // gpolicy4.Grow(rnet,6,test_growth_stepsize,128u);
+    // lmcore::RoadNet rnet(field_size, field_size, roadnetseed);
+    lmcore::FieldsArray farray;
+    farray.height_field = field1f;
+    lmcore::RoadNetOperator rnetop(field_size, field_size, roadnetseed);
+    lmcore::DefaultMainRoadPolicy p1(farray);
+    p1.Generate(rnetop,1024,0.1f);
+    // lmcore::L1Growth gpolicy1(field1f);
+    // gpolicy1.Grow(rnet, test_growth_steps, test_growth_stepsize, 3u);
+    // lmcore::L2Growth gpolicy2(field1f);
+    // gpolicy2.Grow(rnet, 25, test_growth_stepsize, 8u);
+    // gpolicy2.Grow(rnet, 15, test_growth_stepsize, 8u);
+    // gpolicy2.Grow(rnet, 10, test_growth_stepsize, 64u);
+    // lmcore::L3Growth gpolicy3(field1f);
+    // gpolicy3.Grow(rnet, 10, test_growth_stepsize, 64u);
+    // gpolicy3.Grow(rnet, 10, test_growth_stepsize, 128u);
+    // lmcore::L4Growth gpolicy4(field1f);
+    // gpolicy4.Grow(rnet, 10, test_growth_stepsize, 128u);
+    // // gpolicy4.Grow(rnet,6,test_growth_stepsize,128u);
 
     uint32_t strSize = stripe_pos.size();
 
@@ -277,8 +282,8 @@ int main()
             float ndx = -dx;
             float ndy = -dy;
 
-            lmcore::PosColorVertex p0 = {.x = e.x + ndx, .y = e.y + ndy, .z = e.z, .r = r, .g = g, .b = b, .a = 1.f};
-            lmcore::PosColorVertex p1 = {.x = e.x + dx, .y = e.y + dy, .z = e.z, .r = r, .g = g, .b = b, .a = 1.f};
+            lmcore::PosColorVertex p0 = {.x = e.x + ndx, .y = e.y + ndy, .z = e.z, .r = 0.2, .g = 0.2, .b = b, .a = 1.f};
+            lmcore::PosColorVertex p1 = {.x = e.x + dx, .y = e.y + dy, .z = e.z, .r = 0.2, .g = 0.2, .b = b, .a = 1.f};
             lmcore::PosColorVertex p2 = {.x = s.x + ndx, .y = s.y + ndy, .z = s.z, .r = r, .g = g, .b = b, .a = 1.f};
             lmcore::PosColorVertex p3 = {.x = s.x + dx, .y = s.y + dy, .z = s.z, .r = r, .g = g, .b = b, .a = 1.f};
 
@@ -293,7 +298,10 @@ int main()
 
         std::vector<lmcore::PosColorVertex> str_verts;
 
+        // auto segidx = rnet.segments.getIndicesArray();
+        auto &rnet = rnetop.get();
         auto segidx = rnet.segments.getIndicesArray();
+
         for (auto sidx : segidx)
         {
             auto &s = rnet.segments.get(sidx);
@@ -303,11 +311,14 @@ int main()
             make_stripe(ns, ne, str_verts, s.level);
         }
 
-        auto stripe = rd->CreateRenderObject(str_verts.data(), str_verts.size());
-        lmcore::RenderComponent rc_str = {.handle = stripe, .program = "basic", .line = false};
-        auto et_str = ecs->Create();
-        ecs->Add(et_str, lmcore::TransformComponent{});
-        ecs->Add(et_str, rc_str);
+        if (str_verts.size() > 0)
+        {
+            auto stripe = rd->CreateRenderObject(str_verts.data(), str_verts.size());
+            lmcore::RenderComponent rc_str = {.handle = stripe, .program = "basic", .line = false};
+            auto et_str = ecs->Create();
+            ecs->Add(et_str, lmcore::TransformComponent{});
+            ecs->Add(et_str, rc_str);
+        }
     }
 
     // if (rnet.segments.size() > 0)
