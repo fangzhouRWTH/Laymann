@@ -4,12 +4,22 @@
 
 namespace lmcore
 {
-    inline GVec2f perpendicularLeft(const float &x, const float & y)
+    inline bool equalVec2(GVec2f v1, GVec2f v2)
+    {
+        return {v1.x == v2.x && v1.y == v2.y};
+    }
+
+    inline bool equalVec3(GVec3f v1, GVec3f v2)
+    {
+        return {v1.x == v2.x && v1.y == v2.y && v1.z == v2.z};
+    }
+
+    inline GVec2f perpendicularLeft(const float &x, const float &y)
     {
         return GVec2f{-y, x};
     }
 
-    inline GVec2f perpendicularRight(const float &x, const float & y)
+    inline GVec2f perpendicularRight(const float &x, const float &y)
     {
         return GVec2f{y, -x};
     }
@@ -109,6 +119,41 @@ namespace lmcore
 
         return false;
     }
+
+    // inline bool segmentsIntersectExcludeSecondOpen2D(const GVec3f &a, const GVec3f &b,
+    //                                                  const GVec3f &c, const GVec3f &d)
+    // {
+    //     // 1. 快速排斥
+    //     if (!bboxOverlap2D(a, b, c, d))
+    //         return false;
+
+    //     const float c1 = cross2D(a, b, c);
+    //     const float c2 = cross2D(a, b, d);
+    //     const float c3 = cross2D(c, d, a);
+    //     const float c4 = cross2D(c, d, b);
+
+    //     const int s1 = sign(c1);
+    //     const int s2 = sign(c2);
+    //     const int s3 = sign(c3);
+    //     const int s4 = sign(c4);
+
+    //     // 2. 严格相交
+    //     if ((s1 * s2 < 0) && (s3 * s4 < 0))
+    //         return true;
+
+    //     if (s4 == 0 && onSegment2D(c, d, b))
+    //         return false;
+    //     if (s3 == 0 && onSegment2D(c, d, a))
+    //         return false;
+
+    //     // 3. 处理共线 / 端点接触
+    //     if (s1 == 0 && onSegment2D(a, b, c))
+    //         return true;
+    //     if (s2 == 0 && onSegment2D(a, b, d))
+    //         return true;
+
+    //     return false;
+    // }
 
     inline bool segmentsProperlyIntersect2D(const GVec3f &a, const GVec3f &b,
                                             const GVec3f &c, const GVec3f &d)

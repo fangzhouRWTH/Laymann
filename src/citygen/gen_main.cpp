@@ -219,8 +219,11 @@ int main()
     lmcore::RoadNetOperator rnetop(field_size, field_size, roadnetseed);
     lmcore::DefaultMainRoadPolicy p_default_main(farray);
     lmcore::AltitudeSamplePolicy p_altitude(farray);
+
+    lmcore::DefaultSecondaryRoadPolicy p_default_secondary(farray);
     
     p_default_main.Apply(rnetop,1024,0.1f);
+    p_default_secondary.Apply(rnetop,1024,0.1f);
     p_altitude.Apply(rnetop);
     // lmcore::L1Growth gpolicy1(field1f);
     // gpolicy1.Grow(rnet, test_growth_steps, test_growth_stepsize, 3u);

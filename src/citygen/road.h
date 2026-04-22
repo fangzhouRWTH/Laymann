@@ -93,7 +93,7 @@ namespace lmcore
             return get(idx);
         }
 
-        std::vector<T> getArray()
+        const std::vector<T> getArray() const
         {
             std::vector<T> array;
 
@@ -106,7 +106,7 @@ namespace lmcore
             return std::move(array);
         }
 
-        std::vector<uint32_t> getIndicesArray()
+        const std::vector<uint32_t> getIndicesArray() const
         {
             std::vector<uint32_t> array;
 
@@ -119,6 +119,13 @@ namespace lmcore
             return std::move(array);
         }
     };
+
+    // enum class RoadLevel
+    // {
+    //     Main = 0,
+    //     Secondary,
+
+    // };
 
 #define MAX_NODE_EDGE_COUNT 8u
     struct RoadNode
@@ -431,9 +438,40 @@ namespace lmcore
         virtual void Apply(RoadNetOperator &net, uint32_t steps, float size) = 0;
 
     protected:
+        // todo
+        std::vector<uint32_t> segment_filter(RoadNetOperator &net, uint32_t level)
+        {
+            auto indice = net.get().segments.getIndicesArray();
+            std::vector<uint32_t> filter;
+            for (auto i : indice)
+            {
+                if (net.get_edge(i).level == level)
+                    filter.push_back(i);
+            }
+
+            return filter;
+        }
+
+    protected:
         FieldsArray mFields;
         std::queue<GrowthFront> mFronts;
         lmcore::Random mRandom;
+    };
+
+    class AltitudeSamplePolicy : public RoadGenerationPolicy
+    {
+    public:
+        explicit AltitudeSamplePolicy(FieldsArray fields) : RoadGenerationPolicy(fields) {}
+        virtual void Apply(RoadNetOperator &net, uint32_t steps = 0u, float size = 0.f)
+        {
+            auto &netData = net.get();
+            auto ia = netData.nodes.getIndicesArray();
+            for (auto i : ia)
+            {
+                auto &p = netData.nodes[i].pos;
+                p.z = mFields.height_field->Sample(p.x, p.y);
+            }
+        }
     };
 
     class DefaultMainRoadPolicy : public RoadGenerationPolicy
@@ -456,22 +494,22 @@ namespace lmcore
             f_normalize_2d_fast(dx, dy);
 
             GrowthFront front0;
-            front0.level = 0u;
+            front0.level = 1u;
             front0.nodeId = ni;
             front0.dir = {dx, dy};
 
             GrowthFront front1;
-            front1.level = 0u;
+            front1.level = 1u;
             front1.nodeId = ni;
             front1.dir = {-dx, -dy};
 
             GrowthFront front2;
-            front2.level = 0u;
+            front2.level = 1u;
             front2.nodeId = ni;
             front2.dir = {dy, -dx};
 
             GrowthFront front3;
-            front3.level = 0u;
+            front3.level = 1u;
             front3.nodeId = ni;
             front3.dir = {-dy, dx};
 
@@ -525,7 +563,7 @@ namespace lmcore
                         }
                     }
 
-                    //potentialnode.pos.z = mFields.height_field->Sample(potentialnode.pos.x, potentialnode.pos.y);
+                    // potentialnode.pos.z = mFields.height_field->Sample(potentialnode.pos.x, potentialnode.pos.y);
                     if (has_intersect)
                     {
                         pr.first.nodeId = int_node_id;
@@ -577,19 +615,155 @@ namespace lmcore
         }
     };
 
-    class AltitudeSamplePolicy : public RoadGenerationPolicy
+    class DefaultSecondaryRoadPolicy : public RoadGenerationPolicy
     {
     public:
-        explicit AltitudeSamplePolicy(FieldsArray fields) : RoadGenerationPolicy(fields){}
-        virtual void Apply(RoadNetOperator &net, uint32_t steps = 0u, float size = 0.f)
+        DefaultSecondaryRoadPolicy(FieldsArray fields) : RoadGenerationPolicy(fields) {}
+        virtual void Apply(RoadNetOperator &net, uint32_t steps, float size)
         {
-            auto & netData = net.get();
-            auto ia = netData.nodes.getIndicesArray();
-            for(auto i : ia)
+            auto filter = segment_filter(net, 1);
+            auto filter_size = filter.size();
+            uint32_t count = 0u;
+            uint32_t limit = 0u;
+            std::vector<uint32_t> picked;
+            while (count < 32u && limit < 100000u)
             {
-                auto & p = netData.nodes[i].pos;
-                p.z = mFields.height_field->Sample(p.x, p.y);
+                limit++;
+                uint32_t idx = mRandom.nextGaussianApprox(0.0, 1.0) * filter_size;
+                bool found = false;
+                for (auto i : picked)
+                {
+                    if (i == idx)
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                {
+                    picked.push_back(idx);
+                    count++;
+                }
             }
+
+            for (auto p : picked)
+            {
+                auto &e = net.get_edge(p);
+                auto &sn = net.get_node(e.startNode);
+                auto &en = net.get_node(e.endNode);
+
+                float dx = en.pos.x - sn.pos.x;
+                float dy = en.pos.y - sn.pos.y;
+                auto dir = perpendicularLeft(dx, dy);
+
+                dir = normalize(dir) * mRandom.nextSign();
+                GrowthFront front;
+                front.dir = dir;
+                front.length = size;
+                front.level = 2;
+                front.nodeId = e.endNode;
+                mFronts.push(front);
+            }
+
+            for (uint32_t i = 0u; i < steps; i++)
+            {
+                uint32_t q_size = mFronts.size();
+                for (uint32_t qi = 0u; qi < q_size; qi++)
+                {
+                    GrowthFront f = mFronts.front();
+                    mFronts.pop();
+                    auto &netdata = net.get();
+                    RoadNode n = net.get_node(f.nodeId);
+                    std::pair<GrowthFront, RoadNode> pr = grow(f, n, size);
+
+                    if (pr.first.level < 0)
+                        continue;
+
+                    if (pr.second.pos.x < -netdata.regionHalfWidth ||
+                        pr.second.pos.x > netdata.regionHalfWidth ||
+                        pr.second.pos.y < -netdata.regionHalfHeight ||
+                        pr.second.pos.y > netdata.regionHalfHeight)
+                        continue;
+
+                    auto potentialfront = pr.first;
+                    auto potentialnode = pr.second;
+
+                    bool has_intersect = false;
+                    int int_node_id = -1;
+                    auto segidx = net.get().segments.getIndicesArray();
+                    for (auto sidx : segidx)
+                    {
+                        auto &s = net.get().segments.get(sidx);
+                        auto s0 = net.get().nodes[s.startNode].pos;
+                        auto s1 = net.get().nodes[s.endNode].pos;
+                        auto s2 = net.get().nodes[f.nodeId].pos;
+                        auto s3 = pr.second.pos;
+
+                        if (equalVec3(s2, s0) || equalVec3(s2, s1))
+                            continue;
+
+                        // has_intersect = segmentsProperlyIntersect2D(s0, s1, s2, s3);
+                        has_intersect = segmentsIntersect2D(s0, s1, s2, s3);
+                        // has_intersect = segmentsIntersectExcludeSecondOpen2D(s2,s3,s0,s1);
+                        if (has_intersect)
+                        {
+                            int_node_id = s.startNode;
+                            potentialnode.pos.x = (s0.x + s1.x + s2.x + s3.x) / 4.f;
+                            potentialnode.pos.y = (s0.y + s1.y + s2.y + s3.y) / 4.f;
+                            // newPos.z = mField1->Sample(newPos.x, newPos.y);
+                            break;
+                        }
+                    }
+
+                    // potentialnode.pos.z = mFields.height_field->Sample(potentialnode.pos.x, potentialnode.pos.y);
+                    if (has_intersect)
+                    {
+                        pr.first.nodeId = int_node_id;
+                        net.get().nodes[int_node_id].pos = potentialnode.pos;
+                    }
+                    else
+                    {
+                        uint32_t nidx = net.get().nodes.get_size();
+                        net.get().nodes.add(potentialnode);
+                        pr.first.nodeId = nidx;
+                        mFronts.push(pr.first);
+                    }
+
+                    RoadSegment seg;
+                    seg.active = true;
+                    seg.level = f.level;
+                    seg.startNode = f.nodeId;
+                    seg.endNode = pr.first.nodeId;
+
+                    net.get().segments.add(seg);
+                }
+            }
+        }
+
+    private:
+        std::pair<GrowthFront, RoadNode> grow(GrowthFront front, RoadNode node, float length)
+        {
+            float move_u = node.pos.x;
+            float move_v = node.pos.y;
+
+            float tdx = front.target.x - move_u;
+            float tdy = front.target.y - move_v;
+
+            lmcore::GVec2f tv = {move_u, move_v};
+
+            float dx = front.dir.x;
+            float dy = front.dir.y;
+
+            tv.x += dx * length;
+            tv.y += dy * length;
+
+            node.pos.x = tv.x;
+            node.pos.y = tv.y;
+            node.pos.z = 0.f;
+
+            front.length += length;
+
+            return {front, node};
         }
     };
 
