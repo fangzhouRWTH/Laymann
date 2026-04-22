@@ -4,6 +4,16 @@
 
 namespace lmcore
 {
+    inline GVec2f perpendicularLeft(const float &x, const float & y)
+    {
+        return GVec2f{-y, x};
+    }
+
+    inline GVec2f perpendicularRight(const float &x, const float & y)
+    {
+        return GVec2f{y, -x};
+    }
+
     inline void f_normalize_2d_fast(float &x, float &y)
     {
         float lenSq = x * x + y * y;

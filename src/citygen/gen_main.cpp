@@ -217,8 +217,11 @@ int main()
     lmcore::FieldsArray farray;
     farray.height_field = field1f;
     lmcore::RoadNetOperator rnetop(field_size, field_size, roadnetseed);
-    lmcore::DefaultMainRoadPolicy p1(farray);
-    p1.Generate(rnetop,1024,0.1f);
+    lmcore::DefaultMainRoadPolicy p_default_main(farray);
+    lmcore::AltitudeSamplePolicy p_altitude(farray);
+    
+    p_default_main.Apply(rnetop,1024,0.1f);
+    p_altitude.Apply(rnetop);
     // lmcore::L1Growth gpolicy1(field1f);
     // gpolicy1.Grow(rnet, test_growth_steps, test_growth_stepsize, 3u);
     // lmcore::L2Growth gpolicy2(field1f);

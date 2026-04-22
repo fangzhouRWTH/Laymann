@@ -103,7 +103,7 @@ namespace lmcore
                     array.push_back(content[i.second]);
             }
 
-            return array;
+            return std::move(array);
         }
 
         std::vector<uint32_t> getIndicesArray()
@@ -116,7 +116,7 @@ namespace lmcore
                     array.push_back(i.second);
             }
 
-            return array;
+            return std::move(array);
         }
     };
 
@@ -428,7 +428,7 @@ namespace lmcore
     public:
         explicit RoadGenerationPolicy(FieldsArray fields) : mFields(fields) {}
         virtual ~RoadGenerationPolicy() {}
-        virtual void Generate(RoadNetOperator &net, uint32_t steps, float size) = 0;
+        virtual void Apply(RoadNetOperator &net, uint32_t steps, float size) = 0;
 
     protected:
         FieldsArray mFields;
@@ -439,15 +439,15 @@ namespace lmcore
     class DefaultMainRoadPolicy : public RoadGenerationPolicy
     {
     public:
-        explicit DefaultMainRoadPolicy(FieldsArray _fields) : RoadGenerationPolicy(_fields) {}
-        virtual void Generate(RoadNetOperator &net, uint32_t steps, float size)
+        explicit DefaultMainRoadPolicy(FieldsArray fields) : RoadGenerationPolicy(fields) {}
+        virtual void Apply(RoadNetOperator &net, uint32_t steps, float size)
         {
             float h = net.get().regionHalfHeight;
             float w = net.get().regionHalfWidth;
             float rs = 0.6f;
             float px = mRandom.nextFloat(-w * rs, w * rs);
             float py = mRandom.nextFloat(-h * rs, h * rs);
-            float pz = mFields.height_field->Sample(px,py);
+            float pz = mFields.height_field->Sample(px, py);
             GVec3f pos = {px, py, pz};
             auto ni = net.add_node(pos);
 
@@ -525,7 +525,7 @@ namespace lmcore
                         }
                     }
 
-                    potentialnode.pos.z = mFields.height_field->Sample(potentialnode.pos.x, potentialnode.pos.y);
+                    //potentialnode.pos.z = mFields.height_field->Sample(potentialnode.pos.x, potentialnode.pos.y);
                     if (has_intersect)
                     {
                         pr.first.nodeId = int_node_id;
@@ -574,6 +574,22 @@ namespace lmcore
             front.length += length;
 
             return {front, node};
+        }
+    };
+
+    class AltitudeSamplePolicy : public RoadGenerationPolicy
+    {
+    public:
+        explicit AltitudeSamplePolicy(FieldsArray fields) : RoadGenerationPolicy(fields){}
+        virtual void Apply(RoadNetOperator &net, uint32_t steps = 0u, float size = 0.f)
+        {
+            auto & netData = net.get();
+            auto ia = netData.nodes.getIndicesArray();
+            for(auto i : ia)
+            {
+                auto & p = netData.nodes[i].pos;
+                p.z = mFields.height_field->Sample(p.x, p.y);
+            }
         }
     };
 
