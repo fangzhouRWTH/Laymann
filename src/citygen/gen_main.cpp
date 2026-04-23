@@ -216,15 +216,17 @@ int main()
     // lmcore::RoadNet rnet(field_size, field_size, roadnetseed);
     lmcore::FieldsArray farray;
     farray.height_field = field1f;
-    lmcore::RoadNetOperator rnetop(field_size, field_size, roadnetseed);
+    lmcore::RoadNetOperator rnetop(field_size, field_size);
     lmcore::DefaultMainRoadPolicy p_default_main(farray);
     lmcore::AltitudeSamplePolicy p_altitude(farray);
 
     lmcore::DefaultSecondaryRoadPolicy p_default_secondary(farray);
-    
-    p_default_main.Apply(rnetop,1024,0.1f);
-    p_default_secondary.Apply(rnetop,1024,0.1f);
+
+    p_default_main.Apply(rnetop, 256, 0.1f);
+    p_default_secondary.Apply(rnetop, 32, 0.1f);
     p_altitude.Apply(rnetop);
+    rnetop.Build();
+
     // lmcore::L1Growth gpolicy1(field1f);
     // gpolicy1.Grow(rnet, test_growth_steps, test_growth_stepsize, 3u);
     // lmcore::L2Growth gpolicy2(field1f);
@@ -313,8 +315,19 @@ int main()
             auto &s = rnet.segments.get(sidx);
             auto ns = rnet.nodes[s.startNode].pos;
             auto ne = rnet.nodes[s.endNode].pos;
-            float hw = (5 - s.level) * 0.006f + 0.010f;
-            make_stripe(ns, ne, str_verts, s.level);
+            make_stripe(ns, ne, str_verts, s.level + 1u);
+        }
+
+        auto &blocks = rnet.blocks;
+        for (auto &b : blocks)
+        {
+            for (auto i = 0; i < b.pts.size() - 1; i++)
+            {
+                auto ns = b.pts[i];
+                auto ne = b.pts[i+1];
+
+                make_stripe(ns, ne, str_verts, 0);
+            }
         }
 
         if (str_verts.size() > 0)
