@@ -109,6 +109,28 @@ void initFieldData(float scale = 1.f)
                                               1.0, 0.0};
 }
 
+void BuildConvexPolygonMesh(
+    const std::vector<lmcore::GVec3f> &polygon,
+    std::vector<lmcore::PosColorVertex> &vertices,
+    lmcore::GVec3f color)
+{
+    // vertices.clear();
+
+    for (uint32_t i = 1; i < polygon.size() - 1; i++)
+    {
+        auto p0 = polygon[0];
+        auto p1 = polygon[i];
+        auto p2 = polygon[i + 1];
+        lmcore::PosColorVertex pv0 = {.x = p0.x, .y = p0.y, .z = p0.z-0.01f, .r = color.x, .g = color.y, .b = color.z, .a = 1.f};
+        lmcore::PosColorVertex pv1 = {.x = p1.x, .y = p1.y, .z = p1.z-0.01f, .r = color.x, .g = color.y, .b = color.z, .a = 1.f};
+        lmcore::PosColorVertex pv2 = {.x = p2.x, .y = p2.y, .z = p2.z-0.01f, .r = color.x, .g = color.y, .b = color.z, .a = 1.f};
+
+        vertices.push_back(pv2);
+        vertices.push_back(pv1);
+        vertices.push_back(pv0);
+    }
+}
+
 int main()
 {
     lmcore::Framework framework;
@@ -155,7 +177,7 @@ int main()
     float lacunarity = 2.f;
     float persistance = 0.5f;
 
-    double scale = 1.5;
+    double scale = 0.f;
     int roadnetseed = 3;
 
     uint32_t test_growth_steps = 1024;
@@ -222,23 +244,11 @@ int main()
 
     lmcore::DefaultSecondaryRoadPolicy p_default_secondary(farray);
 
-    p_default_main.Apply(rnetop, 256, 0.1f);
-    p_default_secondary.Apply(rnetop, 32, 0.1f);
+    p_default_main.Apply(rnetop, 256u, 0.1f);
+    p_default_secondary.SetOriginCount(32u);
+    p_default_secondary.Apply(rnetop, 64u, 0.1f);
     p_altitude.Apply(rnetop);
     rnetop.Build();
-
-    // lmcore::L1Growth gpolicy1(field1f);
-    // gpolicy1.Grow(rnet, test_growth_steps, test_growth_stepsize, 3u);
-    // lmcore::L2Growth gpolicy2(field1f);
-    // gpolicy2.Grow(rnet, 25, test_growth_stepsize, 8u);
-    // gpolicy2.Grow(rnet, 15, test_growth_stepsize, 8u);
-    // gpolicy2.Grow(rnet, 10, test_growth_stepsize, 64u);
-    // lmcore::L3Growth gpolicy3(field1f);
-    // gpolicy3.Grow(rnet, 10, test_growth_stepsize, 64u);
-    // gpolicy3.Grow(rnet, 10, test_growth_stepsize, 128u);
-    // lmcore::L4Growth gpolicy4(field1f);
-    // gpolicy4.Grow(rnet, 10, test_growth_stepsize, 128u);
-    // // gpolicy4.Grow(rnet,6,test_growth_stepsize,128u);
 
     uint32_t strSize = stripe_pos.size();
 
@@ -315,19 +325,38 @@ int main()
             auto &s = rnet.segments.get(sidx);
             auto ns = rnet.nodes[s.startNode].pos;
             auto ne = rnet.nodes[s.endNode].pos;
-            make_stripe(ns, ne, str_verts, s.level + 1u);
+            make_stripe(ns, ne, str_verts, s.level);
         }
 
         auto &blocks = rnet.blocks;
+        std::vector<lmcore::PosColorVertex> bverts;
+        lmcore::Random rnd{0};
         for (auto &b : blocks)
         {
-            for (auto i = 0; i < b.pts.size() - 1; i++)
-            {
-                auto ns = b.pts[i];
-                auto ne = b.pts[i+1];
+            // for (auto i = 0; i < b.pts.size() - 1; i++)
+            // {
+            //     auto ns = b.pts[i];
+            //     auto ne = b.pts[i + 1];
 
-                make_stripe(ns, ne, str_verts, 0);
+            //     make_stripe(ns, ne, str_verts, 0);
+            // }
+            auto res = rnd.nextInt(0,2);
+            lmcore::GVec3f color;
+            switch(res)
+            {
+                case 0:
+                    color.x=1.0f;color.y = 0.2f;color.z = 0.0f;
+                    break;
+                case 1:
+                    color.x = 0.0f;color.y = 1.0f;color.z = 0.2f;
+                    break;
+                case 2:
+                    color.x = 0.2f;color.y = 0.2f;color.z = 1.0f;
+                    break;
+                default:
+                    color.x = 1.f;color.y = 1.f;color.z = 1.f;
             }
+            BuildConvexPolygonMesh(b.pts, str_verts, color);
         }
 
         if (str_verts.size() > 0)
@@ -337,6 +366,15 @@ int main()
             auto et_str = ecs->Create();
             ecs->Add(et_str, lmcore::TransformComponent{});
             ecs->Add(et_str, rc_str);
+        }
+
+        if (bverts.size() > 0)
+        {
+            auto blocksh = rd->CreateRenderObject(bverts.data(), bverts.size());
+            lmcore::RenderComponent rc_blc = {.handle = blocksh, .program = "basic", .line = false};
+            auto et_blc = ecs->Create();
+            ecs->Add(et_blc, lmcore::TransformComponent{});
+            ecs->Add(et_blc, rc_blc);
         }
     }
 

@@ -365,15 +365,17 @@ namespace lmcore
         }
 
         // TODO handle multiple intersections
-        uint32_t propose_intersection(uint32_t startNodeIndex, GVec3f nextPos, uint32_t level)
+        bool propose_intersection(uint32_t startNodeIndex, GVec3f nextPos, uint32_t level, uint32_t &outidx)
         {
             uint32_t nidx = kInvalidU32;
             if (nextPos.x < -mNet.regionHalfWidth ||
                 nextPos.x > mNet.regionHalfWidth ||
                 nextPos.y < -mNet.regionHalfHeight ||
                 nextPos.y > mNet.regionHalfHeight)
-                return nidx;
-
+            {
+                outidx = nidx;
+                return false;
+            }
             bool has_intersect = false;
             uint32_t edgeIndex = kInvalidU32;
             uint32_t sn1i = kInvalidU32;
@@ -432,7 +434,8 @@ namespace lmcore
             }
 
             add_edge(startNodeIndex, nidx, level);
-            return nidx;
+            outidx = nidx;
+            return has_intersect;
         }
 
         void Build()
@@ -499,8 +502,8 @@ namespace lmcore
                           });
 
                 uint32_t target = 0xFFFFFFFF;
-                //TODO tricky part
-                if(toN.halfedgeCount==1)
+                // TODO tricky part
+                if (toN.halfedgeCount == 1)
                     continue;
                 for (auto i = 0; i < toN.halfedgeCount; i++)
                 {
@@ -510,10 +513,9 @@ namespace lmcore
                         target = (i + 1) % toN.halfedgeCount;
                     }
                 }
-                if(target!=0xFFFFFFFF)
+                if (target != 0xFFFFFFFF)
                     he.next = toN.halfedgeIndices[target];
             }
-
 
             for (auto half_i = 0u; half_i < mNet.half_edges.size(); half_i++)
             {
@@ -527,22 +529,22 @@ namespace lmcore
                 Block block;
                 block.pts.push_back(nodes.get(he.from).pos);
                 bool closed = false;
-                while(true)
+                while (true)
                 {
-                    if(next==0xFFFFFFFF)
+                    if (next == 0xFFFFFFFF)
                         break;
-                    if(next==half_i)
+                    if (next == half_i)
                     {
                         closed = true;
                         break;
                     }
-                    auto & nhe = mNet.half_edges[next];
+                    auto &nhe = mNet.half_edges[next];
                     block.pts.push_back(nodes.get(nhe.from).pos);
                     nhe.visited = true;
                     next = nhe.next;
                 }
 
-                if(closed)
+                if (closed)
                     mNet.blocks.push_back(block);
             }
         }
@@ -680,7 +682,7 @@ namespace lmcore
     protected:
         FieldsArray mFields;
         std::queue<GrowthFront> mFronts;
-        lmcore::Random mRandom = lmcore::Random{3u};
+        lmcore::Random mRandom;
     };
 
     class AltitudeSamplePolicy : public RoadGenerationPolicy
@@ -757,7 +759,8 @@ namespace lmcore
                     if (pr.first.level < 0)
                         continue;
 
-                    auto idx = net.propose_intersection(f.nodeId, pr.second.pos, pr.first.level);
+                    uint32_t idx;
+                    auto hasi = net.propose_intersection(f.nodeId, pr.second.pos, pr.first.level, idx);
 
                     if (idx != net.kInvalidU32)
                     {
@@ -799,6 +802,10 @@ namespace lmcore
     {
     public:
         DefaultSecondaryRoadPolicy(FieldsArray fields) : RoadGenerationPolicy(fields) {}
+        void SetOriginCount(uint32_t count)
+        {
+            mOriginCount = count;
+        }
         virtual void Apply(RoadNetOperator &net, uint32_t steps, float size)
         {
             auto filter = segment_filter(net, 1);
@@ -806,7 +813,7 @@ namespace lmcore
             uint32_t count = 0u;
             uint32_t limit = 0u;
             std::vector<uint32_t> picked;
-            while (count < 64 && limit < 100000u)
+            while (count < mOriginCount && limit < 100000u)
             {
                 limit++;
                 uint32_t idx = mRandom.nextGaussianApprox(0.0, 1.0) * filter_size;
@@ -859,9 +866,15 @@ namespace lmcore
                     if (pr.first.level < 0)
                         continue;
 
-                    auto idx = net.propose_intersection(f.nodeId, pr.second.pos, pr.first.level);
+                    uint32_t idx;
+                    auto hasi = net.propose_intersection(f.nodeId, pr.second.pos, pr.first.level, idx);
+                    int rate = 1.0;
+                    if (hasi)
+                    {
+                        rate = mRandom.nextFloat(0.f, 1.f);
+                    }
 
-                    if (idx != net.kInvalidU32)
+                    if (idx != net.kInvalidU32 && rate > 0.15f)
                     {
                         pr.first.nodeId = idx;
                         mFronts.push(pr.first);
@@ -895,6 +908,9 @@ namespace lmcore
 
             return {front, node};
         }
+
+    private:
+        uint32_t mOriginCount = 16u;
     };
 
     class BlockGenerator
